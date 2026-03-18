@@ -21,7 +21,7 @@ import {
   getIssueForRiskDriver,
   getCompliancePrograms,
 } from '@/lib/ai-advisory';
-import { getFeaturedScenario } from '@/lib/violation-scenarios';
+import { getAllViolationScenarios } from '@/lib/violation-scenarios';
 import {
   ChevronLeft,
   Wrench,
@@ -77,12 +77,27 @@ function getSeverityRank(severity: string) {
   return 3;
 }
 
+function getRiskChipStyle(risk: string) {
+  if (risk === 'Severe') return 'bg-red-100 text-red-800 border-red-200';
+  if (risk === 'Elevated') return 'bg-amber-100 text-amber-800 border-amber-200';
+  if (risk === 'Moderate') return 'bg-yellow-50 text-yellow-800 border-yellow-200';
+  return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+}
+
+function getRiskChipDot(risk: string) {
+  if (risk === 'Severe') return 'bg-red-500';
+  if (risk === 'Elevated') return 'bg-amber-500';
+  if (risk === 'Moderate') return 'bg-yellow-400';
+  return 'bg-emerald-500';
+}
+
 export default function SampleReportPage() {
   const [carrierList, setCarrierList] = useState<CarrierListItem[]>([]);
   const [selectedUsdot, setSelectedUsdot] = useState<string>('');
   const [data, setData] = useState<CarrierBrief | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string>('medical-cert-cdl-mismatch');
 
   useEffect(() => {
     async function fetchCarrierList() {
@@ -189,7 +204,7 @@ export default function SampleReportPage() {
 
   const aiInsight = getAiSafetyInsight(data);
   const compliancePrograms = getCompliancePrograms(data);
-  const featuredViolation = getFeaturedScenario();
+  const violationScenarios = getAllViolationScenarios();
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -393,6 +408,32 @@ export default function SampleReportPage() {
               </div>
             </div>
           </div>
+
+          {/* Risk Chips Row */}
+          <div className="mt-6 border-t border-slate-100 pt-5">
+            <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
+              Risk Category Overview
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { label: 'Maintenance', value: data.riskChips.maintenance },
+                  { label: 'Crash', value: data.riskChips.crash },
+                  { label: 'Driver', value: data.riskChips.driver },
+                  { label: 'Hazmat', value: data.riskChips.hazmat },
+                  { label: 'Admin', value: data.riskChips.admin },
+                ] as { label: string; value: string }[]
+              ).map((chip) => (
+                <span
+                  key={chip.label}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${getRiskChipStyle(chip.value)}`}
+                >
+                  <span className={`h-2 w-2 rounded-full ${getRiskChipDot(chip.value)}`} />
+                  {chip.label}: {chip.value}
+                </span>
+              ))}
+            </div>
+          </div>
         </Card>
 
         {/* AI Safety Advisor Panel */}
@@ -400,20 +441,61 @@ export default function SampleReportPage() {
           <AiSafetyAdvisorPanel insight={aiInsight} />
         </div>
 
-        {/* Featured OOS Violation Scenario */}
+        {/* OOS Violation Scenario Library */}
         <div className="mb-8">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100">
-              <ShieldAlert className="h-4 w-4 text-red-700" />
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100">
+                <ShieldAlert className="h-4 w-4 text-red-700" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">AI Violation Analysis</h2>
+                <p className="text-xs text-slate-500">
+                  Select a violation — click any question to see root cause, prevention steps, and compliance workflow
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">AI Violation Review</h2>
-              <p className="text-xs text-slate-500">
-                Interactive scenario — click a question to see how AI breaks down a real OOS violation
-              </p>
-            </div>
+            <span className="shrink-0 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+              {violationScenarios.length} scenarios
+            </span>
           </div>
-          <ViolationScenarioCard scenario={featuredViolation} />
+
+          {/* Scenario selector tabs */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            {violationScenarios.map((scenario) => (
+              <button
+                key={scenario.id}
+                onClick={() => setSelectedScenarioId(scenario.id)}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
+                  selectedScenarioId === scenario.id
+                    ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <span
+                  className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                    scenario.severity === 'OOS'
+                      ? selectedScenarioId === scenario.id
+                        ? 'bg-red-500 text-white'
+                        : 'bg-red-100 text-red-700'
+                      : selectedScenarioId === scenario.id
+                        ? 'bg-amber-400 text-white'
+                        : 'bg-amber-100 text-amber-700'
+                  }`}
+                >
+                  {scenario.severity}
+                </span>
+                <span className="font-mono">{scenario.code}</span>
+                <span className="hidden sm:inline text-slate-500">— {scenario.category}</span>
+              </button>
+            ))}
+          </div>
+
+          {violationScenarios
+            .filter((s) => s.id === selectedScenarioId)
+            .map((scenario) => (
+              <ViolationScenarioCard key={scenario.id} scenario={scenario} />
+            ))}
         </div>
 
         {/* Top Risk Drivers with AI Insight Cards */}
@@ -670,15 +752,38 @@ export default function SampleReportPage() {
           </Accordion>
         </Card>
 
-        <div className="rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 p-8 text-center text-white">
-          <h2 className="mb-3 text-2xl font-bold">Start with a live DOT-number risk brief</h2>
-          <p className="mx-auto mb-6 max-w-lg text-slate-300">
-            Analyze a real carrier in seconds with trend interpretation and prioritized remediation
-            guidance.
-          </p>
-          <Button size="lg" variant="secondary" asChild>
-            <Link href="/#search">Analyze a Carrier</Link>
-          </Button>
+        <div className="rounded-xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 text-white">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-teal-400">
+              Carrier Risk Intelligence
+            </p>
+            <h2 className="mb-3 text-2xl font-bold">Run a live brief on any carrier</h2>
+            <p className="mb-2 text-slate-300">
+              Enter a USDOT number and get a carrier risk profile with AI-assisted explanation, root cause analysis, and a prioritized remediation plan.
+            </p>
+            <p className="mb-7 text-sm text-slate-400">
+              Used by underwriters, safety directors, brokers, and fleet operators.
+            </p>
+
+            <div className="mb-8 grid grid-cols-1 gap-4 text-left sm:grid-cols-3">
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+                <p className="mb-1 text-sm font-semibold text-white">What happened</p>
+                <p className="text-xs leading-relaxed text-slate-400">Live FMCSA data interpreted in plain English — not just raw numbers.</p>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+                <p className="mb-1 text-sm font-semibold text-white">Why it matters</p>
+                <p className="text-xs leading-relaxed text-slate-400">Root cause identification and risk significance — not a generic scorecard.</p>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+                <p className="mb-1 text-sm font-semibold text-white">What to do next</p>
+                <p className="text-xs leading-relaxed text-slate-400">Prioritized remediation steps and compliance programs — not vague advice.</p>
+              </div>
+            </div>
+
+            <Button size="lg" variant="secondary" asChild>
+              <Link href="/#search">Analyze a Carrier Now</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </div>
