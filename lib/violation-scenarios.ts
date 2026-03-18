@@ -35,6 +35,8 @@ export interface ComplianceProgramSummary {
   items: string[];
 }
 
+// ─── Scenario 1: 391.11(b)(4) Medical Certificate / CDL Self-Certification Mismatch ───
+
 const medicalCertScenario: ViolationScenario = {
   id: 'medical-cert-cdl-mismatch',
   code: '391.11(b)(4)',
@@ -408,7 +410,771 @@ const medicalCertScenario: ViolationScenario = {
   },
 };
 
-export const VIOLATION_SCENARIOS: ViolationScenario[] = [medicalCertScenario];
+// ─── Scenario 2: 395.8 — HOS / ELD False Record of Duty Status ───
+
+const hosEldScenario: ViolationScenario = {
+  id: 'hos-eld-false-record',
+  code: '395.8(e)(1)',
+  title: 'False Record of Duty Status — ELD log does not accurately reflect driver hours or on-duty time',
+  severity: 'OOS',
+  category: 'Hours-of-Service / ELD Compliance',
+  summary:
+    'Driver\'s electronic record of duty status contains inaccurate entries or has been edited in a way that does not reflect actual hours driven or on-duty time. Inspector determined the log does not accurately represent the driver\'s activities.',
+  aiResponses: {
+    prevent: {
+      promptKey: 'prevent',
+      promptLabel: 'Ask AI: How do I prevent this?',
+      sections: [
+        {
+          id: 'what-it-means',
+          heading: 'What this violation means',
+          icon: 'info',
+          content: [
+            'The driver\'s record of duty status (RODS) — whether on an ELD or paper log — does not accurately reflect the actual activities, hours driven, or on-duty time.',
+            'This can mean: log edits not supported by documentation, time-of-day discrepancies between ELD data and GPS or fuel records, driving time recorded as off-duty, or missing entries for known on-duty periods.',
+            'A false record of duty status is one of the most serious HOS violations because it indicates either deliberate falsification or a fundamental failure in log management training.',
+            'When an inspector finds that the log does not match the truck\'s actual movement (GPS, odometer, fuel receipts), this is cited as a false record and results in an immediate OOS order.',
+          ],
+        },
+        {
+          id: 'regulatory-context',
+          heading: 'Regulatory context — 49 CFR §395.8(e)(1)',
+          icon: 'regulation',
+          content: [
+            '49 CFR §395.8 requires drivers to maintain a record of duty status that accurately reflects all on-duty, driving, and off-duty time.',
+            'Section 395.8(e)(1) specifically prohibits false reports — any log entry that does not accurately represent actual driver activity.',
+            'The ELD mandate (49 CFR §395.22) requires most CMV drivers to use certified electronic logging devices. ELD data is harder to falsify than paper logs, but edits, malfunctions, and data gaps can still create false-record violations.',
+            'FMCSA inspectors cross-reference ELD data against GPS records, fuel receipts, toll records, and shipper/receiver timestamps to detect inconsistencies.',
+          ],
+        },
+        {
+          id: 'why-it-matters',
+          heading: 'Why this matters',
+          icon: 'alert',
+          content: [
+            'HOS violations are a direct safety issue — fatigue is one of the leading causes of serious truck crashes.',
+            'A false-record finding is treated more seriously than a routine HOS violation because it implies intent.',
+            'Multiple false-record violations can trigger an FMCSA compliance review or targeted investigation.',
+            'If a crash occurs while a driver is operating with a false log, the carrier faces substantially elevated liability exposure.',
+            'The HOS Compliance BASIC tracks this data — elevated percentiles increase insurance costs and regulatory scrutiny.',
+          ],
+        },
+        {
+          id: 'root-cause',
+          heading: 'Likely root cause',
+          icon: 'search',
+          content: [
+            'Dispatch pressure: driver was expected to complete a run that exceeded available hours, leading to log manipulation to avoid refusal.',
+            'Training gap: driver does not understand when and how to properly edit ELD entries, or how annotations must match supporting documentation.',
+            'Cultural tolerance: if other drivers or management implicitly accept log fudging, it becomes normalized.',
+            'ELD unfamiliarity: driver is manipulating the device due to confusion about how it works, not deliberate falsification.',
+          ],
+        },
+        {
+          id: 'prevent-step-1',
+          heading: '1. Audit ELD data against GPS and fuel records',
+          icon: 'checklist',
+          content: [
+            'Cross-reference ELD driving time against GPS position history for each driver on a weekly basis.',
+            'Flag any discrepancies — particularly driving time recorded as off-duty, gaps in movement records, or edits without annotations.',
+            'Use telematics reports to identify drivers whose logs do not align with physical records.',
+          ],
+          note: 'Regular audits show drivers that compliance is monitored and create a deterrent against deliberate falsification.',
+        },
+        {
+          id: 'prevent-step-2',
+          heading: '2. Eliminate dispatch pressure on hours',
+          icon: 'checklist',
+          content: [
+            'Review dispatch scheduling practices — are loads being assigned that require more hours than are legally available?',
+            'Implement a dispatcher HOS visibility tool so dispatchers can see driver available hours before assigning loads.',
+            'Create a formal policy: dispatchers are prohibited from assigning loads that a driver cannot legally complete.',
+            'Establish a culture where drivers can refuse an assignment on HOS grounds without fear of retaliation.',
+          ],
+        },
+        {
+          id: 'prevent-step-3',
+          heading: '3. Train drivers on ELD edit procedures',
+          icon: 'checklist',
+          content: [
+            'Drivers must understand that ELD edits are not violations — but edits must be accurate, annotated, and supported by documentation.',
+            'Common legitimate edits: correcting duty status during an unloading delay, logging personal conveyance, or correcting a missed login.',
+            'Training should cover: when edits are appropriate, how to annotate, and why GPS-log consistency matters.',
+          ],
+          subChecklist: {
+            title: 'ELD Training Topics',
+            items: [
+              'How to log all duty statuses correctly',
+              'When and how to make proper annotated edits',
+              'Understanding personal conveyance rules',
+              'What inspectors check during a roadside inspection',
+              'How to handle ELD malfunctions properly',
+            ],
+          },
+        },
+        {
+          id: 'prevent-step-4',
+          heading: '4. Implement real-time HOS monitoring',
+          icon: 'checklist',
+          content: [
+            'Deploy a dispatch-level HOS dashboard that shows each driver\'s available hours in real time.',
+            'Set automated alerts when drivers are within 2 hours of their limit.',
+            'Designate a compliance officer to review flagged ELD events each day.',
+          ],
+        },
+        {
+          id: 'prevent-step-5',
+          heading: '5. Weekly ELD compliance review',
+          icon: 'checklist',
+          content: [
+            'Assign a safety manager or compliance officer to review ELD logs weekly.',
+            'Look for: gaps in driving records, repeated same-day edits, unusual off-duty periods during known delivery windows.',
+            'Use the review findings to coach individual drivers proactively.',
+          ],
+        },
+        {
+          id: 'best-practice-rule',
+          heading: 'The standard to hold',
+          icon: 'shield',
+          highlighted: true,
+          highlightColor: 'blue',
+          content: [
+            'Every driver\'s ELD log should be explainable by their actual day.',
+            'If a log cannot be validated against GPS, fuel receipts, and known stops — it should not be submitted.',
+            'Dispatchers must plan runs that fit within legal hours. If the run is too long, the load gets two drivers or a relay — not a falsified log.',
+          ],
+        },
+      ],
+      complianceProgram: {
+        title: 'Recommended HOS Compliance Program',
+        items: [
+          'Real-time dispatch-level HOS monitoring dashboard',
+          'Weekly ELD audit with GPS cross-reference',
+          'Driver HOS and ELD training (annual)',
+          'Dispatcher HOS planning certification',
+          'ELD edit review and annotation policy',
+          'No-retaliation policy for HOS refusals',
+        ],
+      },
+      immediateActions: [
+        'Pull ELD logs for all drivers for the past 30 days and cross-reference against GPS data',
+        'Identify any drivers with unexplained edit patterns or GPS-log discrepancies',
+        'Review dispatch logs to determine if scheduling practices created hours pressure',
+        'Brief all drivers and dispatchers on false-record consequences and proper ELD procedure',
+        'Implement real-time HOS monitoring at the dispatch level if not already in place',
+      ],
+      workflowSteps: [
+        'Load assigned — dispatcher verifies driver has sufficient available hours',
+        'Driver logs on duty and begins trip',
+        'ELD records driving and on-duty time automatically',
+        'Driver makes annotated edit if an error occurred (with supporting documentation)',
+        'Compliance officer reviews ELD logs weekly vs. GPS records',
+        'Discrepancies flagged and addressed with driver',
+        'Monthly pattern report reviewed by Safety Director',
+      ],
+      workflowConclusion:
+        'When dispatchers plan within legal hours and drivers maintain accurate logs, false-record violations become essentially preventable.',
+    },
+
+    'why-oos': {
+      promptKey: 'why-oos',
+      promptLabel: 'Ask AI: Why is this OOS?',
+      sections: [
+        {
+          id: 'oos-definition',
+          heading: 'Why a false record creates an OOS condition',
+          icon: 'alert',
+          content: [
+            'A false record of duty status results in an OOS order because the inspector cannot verify how many hours the driver has actually worked.',
+            'If the log has been falsified, the inspector has no reliable basis to determine whether the driver is fatigued. The driver could be many hours beyond their legal driving limit.',
+            'FMCSA regulations treat an unverifiable or false log the same as exceeding hours — the driver cannot continue until the situation is resolved.',
+            'The OOS order protects other road users from a driver who may be operating in a deeply fatigued state with no reliable record to establish otherwise.',
+          ],
+        },
+        {
+          id: 'oos-consequences',
+          heading: 'Consequences of this OOS event',
+          icon: 'info',
+          content: [
+            'Driver is placed out of service — cannot drive until the HOS situation is resolved (typically until the driver has accumulated enough off-duty time to restart).',
+            'The citation is recorded in FMCSA SMS — contributes to the HOS Compliance BASIC.',
+            'False record violations are flagged at a higher severity level than standard HOS violations.',
+            'Carrier may be referred for targeted compliance review if pattern continues.',
+            'Load must be handed off or delayed — direct operational cost to the carrier.',
+          ],
+        },
+        {
+          id: 'severity-distinction',
+          heading: 'False record vs. standard HOS violation',
+          icon: 'info',
+          highlighted: true,
+          highlightColor: 'red',
+          content: [
+            'Standard HOS violation: driver exceeded hours limits — log accurately records what happened.',
+            'False record: the log does not reflect what actually happened — inaccurate or edited to obscure actual hours.',
+            'False records carry a higher FMCSA severity weight and are treated as evidence of intent to evade compliance — not just an operational mistake.',
+            'From an underwriting and liability perspective, false records are treated as a major red flag.',
+          ],
+        },
+        {
+          id: 'oos-resolution',
+          heading: 'How to resolve at roadside',
+          icon: 'workflow',
+          content: [
+            'The driver must stop driving immediately.',
+            'The carrier should dispatch a replacement driver if the load must continue.',
+            'The driver typically must take enough off-duty time to reset before resuming operation.',
+            'The cited ELD data and inspection report should be retained for follow-up and any potential DataQs challenge.',
+          ],
+        },
+      ],
+      immediateActions: [
+        'Dispatch a qualified replacement driver for the load',
+        'Retain all ELD records, GPS data, and the inspection report from this incident',
+        'Brief the cited driver on the violation and conduct a root cause conversation',
+        'Pull that driver\'s last 30 days of logs for a compliance review',
+        'Review dispatch records to determine if scheduling contributed to the falsification',
+      ],
+    },
+
+    'internal-control': {
+      promptKey: 'internal-control',
+      promptLabel: 'Ask AI: What internal control would catch this?',
+      sections: [
+        {
+          id: 'control-overview',
+          heading: 'The control that prevents false records',
+          icon: 'shield',
+          content:
+            'A weekly ELD-vs-GPS audit, combined with a dispatch hours-visibility tool, catches false records before they reach a roadside inspection — and eliminates the pressure that typically causes them.',
+        },
+        {
+          id: 'control-1',
+          heading: 'Control 1: ELD-GPS cross-reference audit',
+          icon: 'checklist',
+          content: [
+            'Weekly: pull each driver\'s ELD driving time and cross-reference against GPS location history.',
+            'Flag: any period where GPS shows movement but ELD shows off-duty or sleeper.',
+            'Flag: any ELD edits without clear annotations or supporting documentation.',
+            'Escalate: all flagged records to the Safety Director for review within 48 hours.',
+          ],
+          note: 'Most ELD platforms and telematics systems can generate this report automatically.',
+        },
+        {
+          id: 'control-2',
+          heading: 'Control 2: Dispatch hours visibility',
+          icon: 'checklist',
+          content: [
+            'Dispatchers should see each driver\'s available hours before assigning a load.',
+            'System should flag any load assignment that exceeds the driver\'s available hours.',
+            'Policy: dispatchers cannot override this flag without Safety Director approval.',
+          ],
+        },
+        {
+          id: 'control-3',
+          heading: 'Control 3: ELD edit review workflow',
+          icon: 'checklist',
+          content: [
+            'All ELD edits are reviewed by the compliance officer within 24 hours.',
+            'Each edit must have an annotation explaining the reason.',
+            'Repeated edits by the same driver trigger a coaching conversation.',
+            'More than 3 unexplained or unsupported edits in 30 days triggers formal review.',
+          ],
+        },
+        {
+          id: 'control-callout',
+          heading: 'The real root cause of false records',
+          icon: 'alert',
+          highlighted: true,
+          highlightColor: 'amber',
+          content: [
+            'False records rarely happen in a vacuum. They almost always follow a pattern where a driver feels they must complete an assignment that exceeds their legal hours.',
+            'Fixing the detection control (weekly audit) prevents the violation from reaching a roadside inspection.',
+            'Fixing the root cause (dispatch pressure) prevents the falsification from happening at all.',
+            'Both controls are needed.',
+          ],
+        },
+      ],
+      complianceProgram: {
+        title: 'Minimum HOS Controls',
+        items: [
+          'Weekly ELD-vs-GPS cross-reference review',
+          'Dispatch hours visibility tool (real-time)',
+          'ELD edit review and annotation policy',
+          'Driver HOS training (annual)',
+          'Dispatcher HOS planning certification',
+        ],
+      },
+      immediateActions: [
+        'Set up a weekly ELD audit process with GPS cross-reference',
+        'Give dispatchers real-time visibility into driver available hours',
+        'Create an ELD edit annotation policy and brief all drivers',
+        'Review the last 30 days of logs for all drivers for patterns',
+      ],
+    },
+
+    workflow: {
+      promptKey: 'workflow',
+      promptLabel: 'Ask AI: Show a compliance workflow',
+      sections: [
+        {
+          id: 'workflow-overview',
+          heading: 'HOS / ELD Compliance Workflow',
+          icon: 'workflow',
+          content:
+            'This workflow covers the full HOS compliance cycle — from load assignment through weekly log audit — to prevent false records from occurring or going undetected.',
+        },
+        {
+          id: 'workflow-steps-detail',
+          heading: 'Step-by-step process',
+          icon: 'checklist',
+          content: [
+            'Step 1 — Load assigned: Dispatcher checks driver available hours before assigning.',
+            'Step 2 — Driver logs on: ELD records login time and duty status.',
+            'Step 3 — Trip in progress: ELD automatically logs driving and on-duty time.',
+            'Step 4 — Any edits: Driver makes annotated edit with reason; compliance officer notified.',
+            'Step 5 — End of day: Driver certifies log; compliance officer reviews flagged events.',
+            'Step 6 — Weekly audit: ELD records compared to GPS history for all drivers.',
+            'Step 7 — Discrepancies: Flagged records escalated to Safety Director within 48 hours.',
+            'Step 8 — Coaching or action: Driver receives coaching; repeated issues trigger formal process.',
+          ],
+        },
+        {
+          id: 'workflow-gates',
+          heading: 'Decision gates',
+          icon: 'shield',
+          highlighted: true,
+          highlightColor: 'teal',
+          content: [
+            'Gate 1 (Dispatch): Driver hours available for load → ASSIGN. Insufficient hours → REASSIGN or SPLIT.',
+            'Gate 2 (Edit review): Edit annotated with valid reason → CLEAR. Unannotated or suspicious edit → ESCALATE.',
+            'Gate 3 (Weekly audit): ELD matches GPS → CLEAR. ELD-GPS discrepancy → INVESTIGATE.',
+          ],
+        },
+      ],
+      workflowSteps: [
+        'Dispatcher verifies driver available hours',
+        'Load assigned within legal hours',
+        'Driver logs on and ELD records trip',
+        'Any edits annotated and reviewed within 24 hours',
+        'End-of-day log certified by driver',
+        'Weekly ELD audit vs. GPS completed',
+        'Discrepancies escalated and addressed',
+      ],
+      workflowConclusion:
+        'When dispatchers plan within legal hours and logs are audited weekly, false-record violations are preventable.',
+      immediateActions: [
+        'Map this workflow against your current dispatch and compliance process',
+        'Identify which gates are missing or not enforced',
+        'Assign ownership for the weekly ELD audit',
+        'Implement the dispatch hours-check gate before the next load assignment cycle',
+      ],
+    },
+  },
+};
+
+// ─── Scenario 3: 396.3(a)(1) — Brakes Out of Adjustment / Defective Brakes ───
+
+const brakeDefectScenario: ViolationScenario = {
+  id: 'brake-defect-out-of-adjustment',
+  code: '396.3(a)(1)',
+  title: 'Brakes Out of Adjustment — Vehicle placed OOS for brake deficiency detected at roadside inspection',
+  severity: 'OOS',
+  category: 'Vehicle Maintenance / Brake Systems',
+  summary:
+    'One or more brakes on the vehicle were found to be out of adjustment, defective, or otherwise not meeting the performance standards required by federal regulations. Brakes are the single most common cause of vehicle out-of-service orders.',
+  aiResponses: {
+    prevent: {
+      promptKey: 'prevent',
+      promptLabel: 'Ask AI: How do I prevent this?',
+      sections: [
+        {
+          id: 'what-it-means',
+          heading: 'What this violation means',
+          icon: 'info',
+          content: [
+            'The inspector found one or more brakes that did not meet the federal brake performance standard — most commonly: brakes out of adjustment (pushrod travel exceeded allowed stroke), cracked or worn drums, defective brake linings, or inoperative slack adjusters.',
+            'Brake defects are the #1 cause of vehicle OOS conditions nationally. This is not an obscure or technical violation — it is the most frequent finding at roadside inspection.',
+            'An out-of-adjustment brake means the braking force applied at that wheel is reduced or absent. In an emergency stop, the vehicle\'s stopping distance increases significantly.',
+            'Brake defects are typically caught during pre-trip inspection — if a vehicle reaches roadside with a brake OOS defect, it means the pre-trip inspection missed it or was not performed thoroughly.',
+          ],
+        },
+        {
+          id: 'regulatory-context',
+          heading: 'Regulatory context — 49 CFR §396.3(a)(1)',
+          icon: 'regulation',
+          content: [
+            '49 CFR §396.3(a)(1) requires that all parts and accessories of a commercial motor vehicle be in safe and proper operating condition at all times.',
+            'The brake performance standard is found in 49 CFR §393.52. Brakes must meet minimum stopping distance requirements.',
+            'The Commercial Vehicle Safety Alliance (CVSA) Out-of-Service Criteria specifies exact conditions that result in immediate OOS orders for brake defects — pushrod stroke limits, drum condition, lining thickness, etc.',
+            'Carriers are responsible for ensuring vehicles are not dispatched with known or detectable brake defects — even if the defect developed after the last maintenance service.',
+          ],
+        },
+        {
+          id: 'why-it-matters',
+          heading: 'Why this matters',
+          icon: 'alert',
+          content: [
+            'Brake defects are the leading cause of vehicle OOS orders — a single inspection with multiple brake findings can significantly impact BASIC percentiles.',
+            'Recurring brake violations signal a systemic preventive maintenance failure — not just a one-time miss.',
+            'A brake failure in a crash scenario creates catastrophic liability exposure for the carrier. Brake condition is one of the first things plaintiff attorneys examine.',
+            'Insurers view carriers with elevated brake-related OOS rates as high-risk — brake defects are a primary driver of vehicle OOS rate concerns.',
+          ],
+        },
+        {
+          id: 'root-cause',
+          heading: 'Likely root cause',
+          icon: 'search',
+          content: [
+            'Pre-trip inspection failure: the driver did not check brake adjustment during pre-trip, or performed a cursory check without properly evaluating pushrod stroke.',
+            'PM interval too long: brake adjustment intervals are not set tightly enough for the operating environment and mileage.',
+            'Automatic slack adjuster (ASA) failure: ASAs are supposed to maintain brake adjustment automatically — if they are defective or not maintained, manual adjustment intervals are needed.',
+            'Shop defect closeout gap: brake issues reported on DVIRs were not fully corrected before the vehicle was dispatched.',
+          ],
+        },
+        {
+          id: 'prevent-step-1',
+          heading: '1. Train drivers on brake inspection technique',
+          icon: 'checklist',
+          content: [
+            'Drivers must perform a proper brake check during every pre-trip inspection.',
+            'The standard brake check: with brakes released, measure pushrod stroke; apply full brake pressure and measure again. Difference must be within CVSA limits.',
+            'Drivers should also check: brake lining condition (visible through spoke wheels), drum condition, hose routing, and slack adjuster function.',
+          ],
+          note: 'A 10-minute brake inspection before departure catches the same defects an inspector would find at roadside.',
+        },
+        {
+          id: 'prevent-step-2',
+          heading: '2. Set PM intervals based on actual brake wear',
+          icon: 'checklist',
+          content: [
+            'Standard practice: brake adjustment included at every PM service and every tire rotation.',
+            'High-duty cycles (local/regional, frequent stops): shorter PM intervals and more frequent brake-specific checks.',
+            'Review brake adjustment history for each unit to determine whether the interval is appropriate.',
+          ],
+        },
+        {
+          id: 'prevent-step-3',
+          heading: '3. Inspect and maintain automatic slack adjusters',
+          icon: 'checklist',
+          content: [
+            'Automatic slack adjusters (ASAs) should maintain brake adjustment automatically — but they fail, wear, and require maintenance.',
+            'Inspect ASA function at every PM: verify the adjuster is self-adjusting correctly.',
+            'Replace ASAs that are failing to maintain adjustment — do not simply re-adjust and ignore the underlying problem.',
+          ],
+          note: 'An ASA that keeps going out of adjustment is telling you it needs to be replaced, not re-adjusted.',
+        },
+        {
+          id: 'prevent-step-4',
+          heading: '4. Implement a gate audit for brake condition',
+          icon: 'checklist',
+          content: [
+            'Before vehicles depart, maintenance supervisor performs a visual gate audit.',
+            'Brake check is a mandatory gate audit item — not optional.',
+            'Any vehicle with a brake defect identified at the gate is held for repair before dispatch.',
+          ],
+          subChecklist: {
+            title: 'Gate Audit Brake Checklist',
+            items: [
+              'Push rod stroke within CVSA limits (brakes applied)',
+              'Brake lining thickness adequate (visible check or measurement)',
+              'Drum condition — no cracks, heat checking, or excessive wear',
+              'Brake hoses — no cracks, chafing, or improper routing',
+              'Slack adjuster condition and function',
+              'Air pressure build-up rate and governor cut-in/cut-out normal',
+            ],
+          },
+        },
+        {
+          id: 'prevent-step-5',
+          heading: '5. Use post-inspection reports to prioritize brake work',
+          icon: 'checklist',
+          content: [
+            'After any roadside inspection, pull the report and review all brake-related findings.',
+            'Use inspection data to identify whether specific units or axle positions are repeat problems.',
+            'Build targeted corrective action: if steer axle brakes are a recurring finding, evaluate steer axle PM intervals specifically.',
+          ],
+        },
+        {
+          id: 'best-practice-rule',
+          heading: 'The maintenance standard to hold',
+          icon: 'shield',
+          highlighted: true,
+          highlightColor: 'emerald',
+          content: [
+            'No vehicle leaves the yard with a brake condition that would fail a CVSA inspection.',
+            'Brake check is the first inspection item — not a formality.',
+            'An ASA that requires re-adjustment at every PM is defective and should be replaced.',
+            'If roadside finds a brake defect, find out why pre-trip missed it — and fix the process.',
+          ],
+        },
+      ],
+      complianceProgram: {
+        title: 'Brake System Compliance Program',
+        items: [
+          'Driver brake inspection training (pre-trip technique)',
+          'PM schedule with brake adjustment at every service',
+          'Automatic slack adjuster inspection and replacement program',
+          'Gate audit with mandatory brake check before dispatch',
+          'Post-inspection data review for brake-specific pattern analysis',
+          'Brake inspection tools at all terminals (pushrod gauges)',
+        ],
+      },
+      immediateActions: [
+        'Conduct a fleet-wide brake inspection on all active vehicles within 72 hours',
+        'Place any vehicle with an out-of-adjustment brake on a no-dispatch hold until repaired',
+        'Pull the last 12 months of inspection reports and count brake-related OOS events by unit',
+        'Review PM schedule for brake adjustment frequency — compare to actual brake wear data',
+        'Provide a driver brake inspection refresher covering pushrod stroke measurement technique',
+      ],
+      workflowSteps: [
+        'Driver performs pre-trip brake inspection (pushrod stroke, lining, drum, hoses)',
+        'Defect found → vehicle held, work order opened, dispatch notified',
+        'No defect found → gate supervisor verifies brake check was performed',
+        'Vehicle dispatched with clean DVIR',
+        'PM service includes brake adjustment check and ASA inspection',
+        'Post-inspection reports reviewed for brake findings monthly',
+        'Recurring brake issues on specific units escalated for root cause review',
+      ],
+      workflowConclusion:
+        'Consistent pre-trip inspection combined with PM-based brake maintenance makes brake OOS violations highly preventable.',
+    },
+
+    'why-oos': {
+      promptKey: 'why-oos',
+      promptLabel: 'Ask AI: Why is this OOS?',
+      sections: [
+        {
+          id: 'oos-definition',
+          heading: 'Why brake defects result in an immediate OOS order',
+          icon: 'alert',
+          content: [
+            'Brake defects are classified as OOS conditions because they directly impair the vehicle\'s ability to stop safely.',
+            'Under CVSA Out-of-Service Criteria, a brake that is out of adjustment, has defective linings, or has a cracked drum creates a condition where the vehicle\'s stopping distance may be substantially increased.',
+            'A vehicle with defective brakes cannot be safely operated on public roads. The inspector is required to place it out of service immediately — the carrier cannot argue the defect is "minor."',
+            'The OOS order means the vehicle must be towed or repaired at roadside before it can resume operation.',
+          ],
+        },
+        {
+          id: 'brake-oos-criteria',
+          heading: 'Common brake OOS conditions',
+          icon: 'regulation',
+          content: [
+            'Out of adjustment: pushrod stroke exceeds CVSA maximum allowable stroke for the brake chamber size.',
+            'Defective lining or pad: worn below minimum thickness, cracked, saturated with oil, or loose.',
+            'Cracked drum: heat-related cracks or structural cracks in brake drum.',
+            'Defective or missing component: inoperative slack adjuster, broken spring, missing brake hardware.',
+            'Air leak: audible air leak in the brake system affecting system pressure.',
+          ],
+          table: {
+            headers: ['Condition', 'OOS Threshold', 'Most Common Cause'],
+            rows: [
+              ['Out of adjustment', 'Stroke exceeds chamber size limit', 'Failed ASA or missed PM'],
+              ['Defective lining', 'Worn below 1/4" (drum), 1/8" (disc)', 'PM interval too long'],
+              ['Cracked drum', 'Any structural crack', 'Heat cycling, overloading'],
+              ['Air leak', 'Audible at 90 PSI', 'Worn fittings, damaged hose'],
+            ],
+          },
+        },
+        {
+          id: 'oos-consequences',
+          heading: 'Consequences of a brake OOS event',
+          icon: 'info',
+          content: [
+            'Vehicle is placed out of service immediately — cannot move under its own power until repaired.',
+            'Carrier must arrange roadside repair or tow to nearest repair facility.',
+            'The violation is recorded in FMCSA SMS — contributes to Vehicle Maintenance BASIC.',
+            'Multiple brake OOS events push the BASIC percentile toward intervention thresholds.',
+            'Creates direct carrier liability: if the vehicle was previously inspected and the brake defect went undetected, the carrier may face negligence claims.',
+          ],
+        },
+        {
+          id: 'oos-resolution',
+          heading: 'How to resolve at roadside',
+          icon: 'workflow',
+          content: [
+            'Arrange a roadside repair with a qualified mobile mechanic if adjustment is the only issue.',
+            'For more serious defects (cracked drum, defective lining), the vehicle must be towed to a repair facility.',
+            'Inspector will re-inspect after repair before releasing the vehicle from OOS status.',
+            'Document all repairs with work orders and retain for DQ file and potential DataQs challenge.',
+          ],
+        },
+        {
+          id: 'brake-oos-callout',
+          heading: 'The pre-trip inspection failure',
+          icon: 'alert',
+          highlighted: true,
+          highlightColor: 'red',
+          content: [
+            'If an inspector found a brake defect at roadside, a thorough pre-trip inspection should have found it first.',
+            'Brake OOS findings at roadside are nearly always a sign that pre-trip inspection quality is inadequate.',
+            'The vehicle was likely in the same condition when it left the yard. The pre-trip process failed to catch it.',
+          ],
+        },
+      ],
+      immediateActions: [
+        'Arrange immediate roadside repair or tow for the vehicle',
+        'Document the defect, repair, and inspector release',
+        'Pull all recent DVIR records for this unit — was the defect previously noted?',
+        'Inspect all other vehicles in the fleet for the same defect category',
+        'Review pre-trip inspection training for all drivers',
+      ],
+    },
+
+    'internal-control': {
+      promptKey: 'internal-control',
+      promptLabel: 'Ask AI: What internal control would catch this?',
+      sections: [
+        {
+          id: 'control-overview',
+          heading: 'The control that prevents brake OOS events',
+          icon: 'shield',
+          content:
+            'A comprehensive pre-trip brake inspection by the driver, combined with PM-based brake adjustment and a gate audit, creates multiple opportunities to catch brake defects before an inspector does.',
+        },
+        {
+          id: 'control-1',
+          heading: 'Control 1: Driver pre-trip brake inspection',
+          icon: 'checklist',
+          content: [
+            'Every driver performs a pushrod stroke check during pre-trip using a brake stroke indicator or ruler.',
+            'Driver checks lining condition through spoke wheels where visible.',
+            'Driver inspects brake hoses for chafing, cracks, or improper routing.',
+            'Any finding is documented on DVIR and reported to maintenance before dispatch.',
+          ],
+          note: 'Drivers need proper training and tools to perform this check correctly. A ruler and basic brake training are all that is required.',
+        },
+        {
+          id: 'control-2',
+          heading: 'Control 2: PM-based brake maintenance',
+          icon: 'checklist',
+          content: [
+            'Brake adjustment is performed at every scheduled PM service — not only when a defect is found.',
+            'ASA function is verified at every PM — not just lubricated.',
+            'Brake lining measurements are recorded at PM and tracked over time to predict replacement intervals.',
+          ],
+        },
+        {
+          id: 'control-3',
+          heading: 'Control 3: Gate audit',
+          icon: 'checklist',
+          content: [
+            'Before first dispatch of the day, maintenance supervisor performs a visual brake check on all outbound vehicles.',
+            'Any vehicle with a brake finding is held — no exceptions.',
+            'Gate audit log is maintained as documentation of the inspection.',
+          ],
+        },
+        {
+          id: 'control-4',
+          heading: 'Control 4: Post-inspection data review',
+          icon: 'checklist',
+          content: [
+            'After any roadside inspection, the inspection report is pulled and reviewed by the maintenance manager.',
+            'Brake findings are tracked by vehicle unit number.',
+            'Units with recurring brake findings trigger a root cause review — is the PM interval wrong? Is the ASA defective?',
+          ],
+        },
+        {
+          id: 'control-callout',
+          heading: 'Why brake OOS events are preventable',
+          icon: 'alert',
+          highlighted: true,
+          highlightColor: 'emerald',
+          content: [
+            'Brake out-of-adjustment conditions develop over time — they are detectable before they reach OOS threshold.',
+            'A driver who knows how to check brake adjustment will find the same condition an inspector finds.',
+            'The only difference between a pre-trip catch and a roadside OOS is whether the driver looked.',
+          ],
+        },
+      ],
+      complianceProgram: {
+        title: 'Brake System Control Requirements',
+        items: [
+          'Driver brake inspection training with pushrod measurement technique',
+          'Brake adjustment at every PM service (minimum)',
+          'ASA inspection and replacement program',
+          'Gate audit with mandatory brake check',
+          'Post-inspection brake finding tracking by unit',
+        ],
+      },
+      immediateActions: [
+        'Train all drivers on proper brake pushrod stroke measurement',
+        'Provide pushrod stroke gauges at all terminals and in truck cabs',
+        'Implement a gate audit with mandatory brake check before dispatch',
+        'Pull the last 12 months of brake-related OOS events and identify top units',
+        'Verify PM intervals include brake adjustment as a mandatory item',
+      ],
+    },
+
+    workflow: {
+      promptKey: 'workflow',
+      promptLabel: 'Ask AI: Show a compliance workflow',
+      sections: [
+        {
+          id: 'workflow-overview',
+          heading: 'Brake System Inspection & Maintenance Workflow',
+          icon: 'workflow',
+          content:
+            'This workflow creates a layered inspection process so brake defects are caught before dispatch — not at roadside.',
+        },
+        {
+          id: 'workflow-steps-detail',
+          heading: 'Step-by-step process',
+          icon: 'checklist',
+          content: [
+            'Step 1 — Pre-trip (daily): Driver performs brake inspection per FMCSA requirements — stroke, lining, drums, hoses.',
+            'Step 2 — Defect found: Driver documents on DVIR and notifies maintenance. Vehicle held.',
+            'Step 3 — No defect found: Driver completes DVIR and vehicle proceeds to gate audit.',
+            'Step 4 — Gate audit: Maintenance supervisor verifies pre-trip was completed and performs visual brake check.',
+            'Step 5 — Gate clear: Vehicle dispatched. DVIR retained.',
+            'Step 6 — PM service: Brake adjustment performed, ASA inspected, lining measurements recorded.',
+            'Step 7 — Post-inspection review: After any roadside inspection, brake findings reviewed and tracked by unit.',
+            'Step 8 — Trend analysis: Units with recurring brake findings reviewed for root cause (PM interval, ASA failure, driver technique).',
+          ],
+        },
+        {
+          id: 'workflow-gates',
+          heading: 'Decision gates',
+          icon: 'shield',
+          highlighted: true,
+          highlightColor: 'emerald',
+          content: [
+            'Gate 1 (Pre-trip): No brake defect found → proceed to gate audit.',
+            'Gate 1 (Pre-trip): Brake defect found → HOLD for repair, no dispatch.',
+            'Gate 2 (Gate audit): Supervisor confirms pre-trip complete + brake visually clear → dispatch.',
+            'Gate 2 (Gate audit): Any brake concern → HOLD for maintenance review.',
+            'Gate 3 (PM): Brake adjustment within spec → clear. Out of spec → adjust and document.',
+          ],
+        },
+      ],
+      workflowSteps: [
+        'Driver performs pre-trip brake inspection',
+        'Defect? → HOLD for repair. No defect? → Gate audit',
+        'Gate supervisor checks brake condition',
+        'Vehicle dispatched with clean DVIR',
+        'PM service includes brake adjustment and ASA check',
+        'Post-inspection reports reviewed for brake findings',
+        'Recurring brake issues on specific units escalated',
+      ],
+      workflowConclusion:
+        'Layered inspection — driver pre-trip, gate audit, and PM-based maintenance — makes brake OOS events preventable.',
+      immediateActions: [
+        'Map this workflow against current pre-trip and PM processes',
+        'Identify which gates are missing (gate audit, post-inspection review)',
+        'Provide brake inspection training and tools for all drivers',
+        'Implement the gate audit process starting with next dispatch cycle',
+      ],
+    },
+  },
+};
+
+// ─── Export ───
+
+export const VIOLATION_SCENARIOS: ViolationScenario[] = [
+  medicalCertScenario,
+  hosEldScenario,
+  brakeDefectScenario,
+];
 
 export function getViolationScenario(id: string): ViolationScenario | undefined {
   return VIOLATION_SCENARIOS.find((s) => s.id === id);
@@ -416,4 +1182,8 @@ export function getViolationScenario(id: string): ViolationScenario | undefined 
 
 export function getFeaturedScenario(): ViolationScenario {
   return medicalCertScenario;
+}
+
+export function getAllViolationScenarios(): ViolationScenario[] {
+  return VIOLATION_SCENARIOS;
 }
