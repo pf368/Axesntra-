@@ -7,6 +7,29 @@ export default function HomePage() {
     <div className="min-h-screen bg-white">
       <HeroSearch />
 
+      {/* ── Metrics strip ── */}
+      <section style={{ background: '#1a2535' }}>
+        <div className="container mx-auto max-w-5xl px-4 py-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-y-2 md:divide-y-0 md:divide-x divide-white/10">
+            {[
+              { value: '600,000+', label: 'active USDOT carriers tracked' },
+              { value: '5', label: 'risk categories scored per carrier' },
+              { value: '12 months', label: 'of trend data per brief' },
+              { value: 'Updated daily', label: 'via FMCSA SMS feed' },
+            ].map((stat) => (
+              <div key={stat.value} className="flex flex-col items-center justify-center text-center px-6 py-3 md:py-0">
+                <p className="text-white font-semibold" style={{ fontSize: '1.75rem', lineHeight: '1.2' }}>
+                  {stat.value}
+                </p>
+                <p className="mt-1" style={{ color: '#94a3b8', fontSize: '13px' }}>
+                  {stat.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4 max-w-4xl">
           <h2 className="text-3xl font-bold text-slate-900 mb-6 text-center">
