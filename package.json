@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "video:studio": "cd video && npx remotion studio",
+    "video:render": "cd video && npx remotion render AxesntraPromo ../public/axesntra-promo.mp4"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
