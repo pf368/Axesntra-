@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
+import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
   title: 'Axesntra | Carrier Intelligence Platform',
@@ -16,9 +17,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Navbar />
-        {children}
-        <Footer />
+        <AuthProvider>
+          <Navbar />
+          {children}
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

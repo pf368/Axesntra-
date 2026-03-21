@@ -41,6 +41,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { useParams } from 'next/navigation';
+import { useWatchlist } from '@/hooks/useWatchlist';
 
 function getContributionColor(contribution: number) {
   if (contribution > 25) return 'bg-red-500';
@@ -56,6 +57,7 @@ export default function CarrierPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lookupStatus, setLookupStatus] = useState<string | null>(null);
+  const { isTracked, toggle } = useWatchlist();
 
   const fetchCarrier = async () => {
     setLoading(true);
@@ -163,7 +165,7 @@ export default function CarrierPage() {
   return (
     <div className="bg-slate-50 min-h-screen">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 no-print">
           <Link
             href="/"
             className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
@@ -172,11 +174,16 @@ export default function CarrierPage() {
             Back to Search
           </Link>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Bell className="h-4 w-4 mr-2" />
-              Track Carrier
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => data && toggle({ usdot: data.usdot, carrierName: data.carrierName, overallRisk: data.overallRisk, trend: data.trend })}
+              className={isTracked(usdot) ? 'border-blue-500 text-blue-700 bg-blue-50' : ''}
+            >
+              <Bell className={`h-4 w-4 mr-2 ${isTracked(usdot) ? 'fill-blue-500 text-blue-500' : ''}`} />
+              {isTracked(usdot) ? 'Tracking' : 'Track Carrier'}
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => window.print()} className="no-print">
               <Download className="h-4 w-4 mr-2" />
               Export PDF
             </Button>

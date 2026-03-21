@@ -77,3 +77,60 @@
 .animate-progress {
   animation: progress 1.5s ease-in-out infinite;
 }
+
+/* ── Print / PDF export styles ── */
+@media print {
+  /* Hide interactive chrome */
+  nav,
+  .no-print,
+  button,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+  }
+
+  /* Force page background to white so dark hero sections don't waste ink */
+  .bg-slate-900,
+  .bg-slate-800,
+  .bg-gradient-to-br {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Keep colored risk badges legible */
+  [class*="bg-red"],
+  [class*="bg-amber"],
+  [class*="bg-emerald"] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Avoid orphaned headings and broken cards */
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+
+  .card,
+  [class*="rounded-xl"],
+  [class*="rounded-lg"] {
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* Full width on print */
+  .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

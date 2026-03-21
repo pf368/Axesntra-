@@ -12,11 +12,18 @@ export function HeroSearch() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
+    const trimmed = query.trim();
+    if (!trimmed) return;
 
     setLoading(true);
     await new Promise((r) => setTimeout(r, 800));
-    router.push(`/carrier/${query.trim()}`);
+
+    // Pure digits → direct carrier lookup; anything else → search results page
+    if (/^\d+$/.test(trimmed)) {
+      router.push(`/carrier/${trimmed}`);
+    } else {
+      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    }
   };
 
   const handleChipClick = (usdot: string) => {
@@ -56,7 +63,7 @@ export function HeroSearch() {
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Enter a USDOT number to generate a carrier risk brief"
+                  placeholder="Enter a USDOT number or carrier name"
                   className="w-full pl-12 pr-4 py-3.5 bg-white text-slate-900 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
                 />
               </div>
