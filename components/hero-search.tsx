@@ -55,7 +55,7 @@ function ReportPreviewCard() {
       className="bg-white rounded-2xl overflow-hidden w-full"
       style={{
         boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
-        transform: 'perspective(1200px) rotateX(4deg) rotateY(-8deg) rotateZ(1deg)',
+        transform: 'translateY(-8px)',
         maskImage: 'linear-gradient(to bottom, black 55%, transparent 95%)',
         WebkitMaskImage: 'linear-gradient(to bottom, black 55%, transparent 95%)',
       }}
