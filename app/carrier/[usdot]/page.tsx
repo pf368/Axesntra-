@@ -165,7 +165,7 @@ export default function CarrierPage() {
   return (
     <div className="bg-slate-50 min-h-screen">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex items-center justify-between mb-6 no-print">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 no-print">
           <Link
             href="/"
             className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
@@ -173,7 +173,7 @@ export default function CarrierPage() {
             <ChevronLeft className="h-4 w-4" />
             Back to Search
           </Link>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -181,20 +181,25 @@ export default function CarrierPage() {
               className={isTracked(usdot) ? 'border-blue-500 text-blue-700 bg-blue-50' : ''}
             >
               <Bell className={`h-4 w-4 mr-2 ${isTracked(usdot) ? 'fill-blue-500 text-blue-500' : ''}`} />
-              {isTracked(usdot) ? 'Tracking' : 'Track Carrier'}
+              {isTracked(usdot) ? 'Tracking' : 'Track'}
             </Button>
             <Button variant="outline" size="sm" onClick={() => window.print()} className="no-print">
               <Download className="h-4 w-4 mr-2" />
               Export PDF
             </Button>
+            <Button variant="outline" size="sm" asChild className="no-print">
+              <Link href={`/compare?a=${usdot}`}>
+                Compare
+              </Link>
+            </Button>
           </div>
         </div>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2 leading-tight">
             {data.carrierName}
           </h1>
-          <p className="text-slate-600">
+          <p className="text-slate-600 text-sm">
             USDOT {data.usdot} | MC {data.mc}
           </p>
         </div>

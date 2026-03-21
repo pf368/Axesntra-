@@ -23,6 +23,7 @@ export function FixPlanTable({ items }: FixPlanTableProps) {
     <div>
       <h2 className="text-2xl font-semibold text-slate-900 mb-4">Prioritized Remediation Plan</h2>
       <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50">
@@ -53,6 +54,7 @@ export function FixPlanTable({ items }: FixPlanTableProps) {
             ))}
           </TableBody>
         </Table>
+        </div>
       </Card>
     </div>
   );

@@ -1,5 +1,9 @@
+'use client';
+
 import Link from 'next/link';
-import { ArrowRight, Clock, BookOpen } from 'lucide-react';
+import { ArrowRight, Clock, BookOpen, Search } from 'lucide-react';
+import { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface RelatedResource {
   href: string;
@@ -27,6 +31,58 @@ interface ContentPageProps {
   category?: string;
   readingTime?: string;
   currentHref?: string;
+}
+
+function InlineSearchCta() {
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    if (/^\d+$/.test(trimmed)) {
+      router.push(`/carrier/${trimmed}`);
+    } else {
+      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    }
+  }
+
+  return (
+    <div className="not-prose my-10 rounded-xl border border-sky-200 bg-sky-50 px-6 py-7">
+      <p className="text-xs font-bold uppercase tracking-widest text-sky-600 mb-2">
+        Try It Yourself
+      </p>
+      <p className="text-slate-700 font-medium mb-4">
+        Look up any carrier instantly — enter a USDOT number or carrier name.
+      </p>
+      <form onSubmit={handleSubmit} className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="USDOT number or carrier name…"
+            className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400"
+          />
+        </div>
+        <button
+          type="submit"
+          className="shrink-0 rounded-lg bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-400 transition-colors"
+        >
+          Search
+        </button>
+      </form>
+      <p className="mt-3 text-xs text-slate-500">
+        Or{' '}
+        <Link href="/sample-report" className="text-sky-600 underline underline-offset-2 hover:text-sky-500">
+          view a sample report
+        </Link>{' '}
+        to see the full risk profile.
+      </p>
+    </div>
+  );
 }
 
 export function ContentPage({
@@ -111,6 +167,11 @@ export function ContentPage({
         </div>
       </div>
 
+      {/* ── Inline search CTA ───────────────────────────────── */}
+      <div className="container mx-auto max-w-3xl px-6 pb-4">
+        <InlineSearchCta />
+      </div>
+
       {/* ── CTA panel ───────────────────────────────────────── */}
       {cta && (
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 py-20 px-6">
@@ -161,6 +222,23 @@ export function ContentPage({
                   </span>
                 </Link>
               ))}
+            </div>
+            <div className="mt-8 flex flex-wrap items-center gap-4 pt-6 border-t border-slate-200">
+              <span className="text-sm text-slate-500">Ready to screen a carrier?</span>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-sky-600 hover:text-sky-500 transition-colors"
+              >
+                <Search className="h-3.5 w-3.5" />
+                Search a carrier
+              </Link>
+              <Link
+                href="/sample-report"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                View sample report
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
           </div>
         </div>
