@@ -1,0 +1,22 @@
+{
+  "name": "axesntra-video",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "studio": "npx remotion studio src/index.ts",
+    "render": "npx remotion render AxesntraPromo ../public/axesntra-promo.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.290",
+    "@remotion/google-fonts": "4.0.290",
+    "@remotion/player": "4.0.290",
+    "remotion": "4.0.290",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5"
+  }
+}
