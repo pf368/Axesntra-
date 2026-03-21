@@ -94,23 +94,39 @@ function getRiskChipDot(risk: string) {
 function getAtAGlanceBorderColor(risk: string): string {
   if (risk === 'Severe') return '#ef4444';
   if (risk === 'Elevated') return '#f97316';
-  return '#22c55e';
+  if (risk === 'Moderate') return '#eab308';
+  if (risk === 'Low') return '#22c55e';
+  return '#64748b';
 }
 
-const SPARKLINE_UP: [number, number][] = [[0, 20], [12, 17], [24, 18], [36, 12], [48, 7], [60, 3]];
-const SPARKLINE_FLAT: [number, number][] = [[0, 14], [12, 12], [24, 14], [36, 13], [48, 12], [60, 14]];
+// Pre-computed SVG points (72×28) for each well-known label.
+// For unknown labels, fall back to direction-based curves.
+const SPARKLINE_DATA: Record<string, { pts: string; color: string }> = {
+  // Worsened — clear upward sweep, stroke orange
+  'Vehicle OOS Rate':       { pts: '0,27 14.4,22 28.8,20 43.2,14 57.6,8 72,1',  color: '#f97316' },
+  'Maintenance Violations': { pts: '0,27 14.4,27 28.8,21 43.2,17 57.6,10 72,1', color: '#f97316' },
+  // Stable — gentle oscillation near the centre, stroke slate
+  'Driver OOS Rate':   { pts: '0,15 14.4,12 28.8,15 43.2,10 57.6,13 72,14', color: '#64748b' },
+  'Crash Frequency':   { pts: '0,16 14.4,13 28.8,16 43.2,13 57.6,16 72,13', color: '#64748b' },
+};
 
-function Sparkline({ direction }: { direction: string }) {
-  const points = direction === 'up' ? SPARKLINE_UP : SPARKLINE_FLAT;
-  const color = direction === 'up' ? '#f97316' : '#64748b';
-  const pointsStr = points.map(([x, y]) => `${x},${y}`).join(' ');
+// Fallback curves by direction
+const FALLBACK_UP   = '0,27 14.4,22 28.8,19 43.2,13 57.6,7 72,1';
+const FALLBACK_DOWN = '0,1 14.4,6 28.8,11 43.2,17 57.6,22 72,27';
+const FALLBACK_FLAT = '0,14 14.4,12 28.8,14 43.2,13 57.6,12 72,14';
+
+function Sparkline({ label, direction }: { label: string; direction: string }) {
+  const preset = SPARKLINE_DATA[label];
+  const pts   = preset?.pts   ?? (direction === 'up' ? FALLBACK_UP : direction === 'down' ? FALLBACK_DOWN : FALLBACK_FLAT);
+  const color = preset?.color ?? (direction === 'up' ? '#f97316'   : direction === 'down' ? '#22c55e'     : '#64748b');
+
   return (
-    <svg width="60" height="24" aria-hidden="true">
+    <svg width="72" height="28" aria-hidden="true">
       <polyline
-        points={pointsStr}
+        points={pts}
         fill="none"
         stroke={color}
-        strokeWidth="1.5"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -423,7 +439,10 @@ export default function SampleReportPage() {
                   <div
                     key={item.label}
                     className="rounded-lg border border-slate-200 border-l-4 p-4"
-                    style={{ borderLeftColor: getAtAGlanceBorderColor(data.overallRisk) }}
+                    style={{
+                      borderLeftColor: getAtAGlanceBorderColor(data.overallRisk),
+                      background: `linear-gradient(to right, ${getAtAGlanceBorderColor(data.overallRisk)}0f, transparent 40%)`,
+                    }}
                   >
                     <p className="mb-1 text-xs uppercase tracking-wider text-slate-500">
                       {item.label}
@@ -605,7 +624,7 @@ export default function SampleReportPage() {
 
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
             {data.whatChangedItems.map((item) => (
-              <Card key={item.label} className="p-5 relative overflow-hidden">
+              <Card key={item.label} className="pt-5 px-5 pb-11 relative overflow-hidden">
                 <div className="mb-3 flex items-center gap-2">
                   <div className={`rounded border p-1.5 ${getChangeColor(item.direction)}`}>
                     {getChangeIcon(item.direction)}
@@ -622,8 +641,8 @@ export default function SampleReportPage() {
                 <p className="mb-1 text-sm font-semibold text-slate-900">{item.label}</p>
                 <p className="text-xs leading-relaxed text-slate-500 pr-14">{item.detail}</p>
 
-                <div className="absolute bottom-3 right-3 opacity-80">
-                  <Sparkline direction={item.direction} />
+                <div className="absolute bottom-3 right-3" style={{ opacity: 0.75 }}>
+                  <Sparkline label={item.label} direction={item.direction} />
                 </div>
               </Card>
             ))}
