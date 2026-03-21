@@ -9,19 +9,27 @@ export default function HomePage() {
 
       {/* ── Metrics strip ── */}
       <section style={{ background: '#1a2535' }}>
-        <div className="container mx-auto max-w-5xl px-4 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-y-2 md:divide-y-0 md:divide-x divide-white/10">
+        <div className="container mx-auto max-w-5xl px-4 py-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 md:divide-x md:divide-white/10">
             {[
               { value: '600,000+', label: 'active USDOT carriers tracked' },
-              { value: '5', label: 'risk categories scored per carrier' },
+              { value: '5',        label: 'risk categories scored per carrier' },
               { value: '12 months', label: 'of trend data per brief' },
               { value: 'Updated daily', label: 'via FMCSA SMS feed' },
-            ].map((stat) => (
-              <div key={stat.value} className="flex flex-col items-center justify-center text-center px-6 py-3 md:py-0">
-                <p className="text-white font-semibold" style={{ fontSize: '1.75rem', lineHeight: '1.2' }}>
+            ].map((stat, i) => (
+              <div
+                key={stat.value}
+                className={`flex flex-col items-center justify-center text-center px-6 py-6 md:py-0${
+                  i >= 2 ? ' border-t border-white/10 md:border-t-0' : ''
+                }`}
+              >
+                <p
+                  className="text-white font-semibold"
+                  style={{ fontSize: '28px', lineHeight: '1.2', letterSpacing: '-0.02em' }}
+                >
                   {stat.value}
                 </p>
-                <p className="mt-1" style={{ color: '#94a3b8', fontSize: '13px' }}>
+                <p className="mt-1" style={{ color: '#94a3b8', fontSize: '13px', fontWeight: 400 }}>
                   {stat.label}
                 </p>
               </div>

@@ -78,6 +78,15 @@
   animation: progress 1.5s ease-in-out infinite;
 }
 
+@keyframes grid-scroll {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-48px); }
+}
+
+.animate-grid-scroll {
+  animation: grid-scroll 20s linear infinite;
+}
+
 /* ── Print / PDF export styles ── */
 @media print {
   /* Hide interactive chrome */
