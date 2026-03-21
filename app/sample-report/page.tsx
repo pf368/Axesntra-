@@ -91,6 +91,33 @@ function getRiskChipDot(risk: string) {
   return 'bg-emerald-500';
 }
 
+function getAtAGlanceBorderColor(risk: string): string {
+  if (risk === 'Severe') return '#ef4444';
+  if (risk === 'Elevated') return '#f97316';
+  return '#22c55e';
+}
+
+const SPARKLINE_UP: [number, number][] = [[0, 20], [12, 17], [24, 18], [36, 12], [48, 7], [60, 3]];
+const SPARKLINE_FLAT: [number, number][] = [[0, 14], [12, 12], [24, 14], [36, 13], [48, 12], [60, 14]];
+
+function Sparkline({ direction }: { direction: string }) {
+  const points = direction === 'up' ? SPARKLINE_UP : SPARKLINE_FLAT;
+  const color = direction === 'up' ? '#f97316' : '#64748b';
+  const pointsStr = points.map(([x, y]) => `${x},${y}`).join(' ');
+  return (
+    <svg width="60" height="24" aria-hidden="true">
+      <polyline
+        points={pointsStr}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function SampleReportPage() {
   const [carrierList, setCarrierList] = useState<CarrierListItem[]>([]);
   const [selectedUsdot, setSelectedUsdot] = useState<string>('');
@@ -376,35 +403,37 @@ export default function SampleReportPage() {
               </p>
 
               <div className="space-y-4">
-                <div className="rounded-lg border border-slate-200 p-4">
-                  <p className="mb-1 text-xs uppercase tracking-wider text-slate-500">
-                    Top Driver of Risk
-                  </p>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {primaryRiskDriver?.title}
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-slate-200 p-4">
-                  <p className="mb-1 text-xs uppercase tracking-wider text-slate-500">
-                    Leading Score Contributor
-                  </p>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {sortedScoreContributions[0]?.category}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {sortedScoreContributions[0]?.contribution}% contribution
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-slate-200 p-4">
-                  <p className="mb-1 text-xs uppercase tracking-wider text-slate-500">
-                    Recommended First Action
-                  </p>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {immediateFocus?.title}
-                  </p>
-                </div>
+                {[
+                  {
+                    label: 'Top Driver of Risk',
+                    primary: primaryRiskDriver?.title,
+                    secondary: null,
+                  },
+                  {
+                    label: 'Leading Score Contributor',
+                    primary: sortedScoreContributions[0]?.category,
+                    secondary: `${sortedScoreContributions[0]?.contribution}% contribution`,
+                  },
+                  {
+                    label: 'Recommended First Action',
+                    primary: immediateFocus?.title,
+                    secondary: null,
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-lg border border-slate-200 border-l-4 p-4"
+                    style={{ borderLeftColor: getAtAGlanceBorderColor(data.overallRisk) }}
+                  >
+                    <p className="mb-1 text-xs uppercase tracking-wider text-slate-500">
+                      {item.label}
+                    </p>
+                    <p className="text-sm font-semibold text-slate-900">{item.primary}</p>
+                    {item.secondary && (
+                      <p className="mt-1 text-xs text-slate-500">{item.secondary}</p>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -576,7 +605,7 @@ export default function SampleReportPage() {
 
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
             {data.whatChangedItems.map((item) => (
-              <Card key={item.label} className="p-5">
+              <Card key={item.label} className="p-5 relative overflow-hidden">
                 <div className="mb-3 flex items-center gap-2">
                   <div className={`rounded border p-1.5 ${getChangeColor(item.direction)}`}>
                     {getChangeIcon(item.direction)}
@@ -591,7 +620,11 @@ export default function SampleReportPage() {
                 </div>
 
                 <p className="mb-1 text-sm font-semibold text-slate-900">{item.label}</p>
-                <p className="text-xs leading-relaxed text-slate-500">{item.detail}</p>
+                <p className="text-xs leading-relaxed text-slate-500 pr-14">{item.detail}</p>
+
+                <div className="absolute bottom-3 right-3 opacity-80">
+                  <Sparkline direction={item.direction} />
+                </div>
               </Card>
             ))}
           </div>
