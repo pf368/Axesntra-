@@ -33,6 +33,7 @@ const FOOTER_SECTIONS = [
     title: 'Company',
     links: [
       { href: '/methodology', label: 'Methodology' },
+      { href: '/pricing', label: 'Pricing' },
       { href: '/early-access', label: 'Early Access' },
       { href: '/sample-report', label: 'Sample Report' },
       { href: '/resources', label: 'All Resources' },

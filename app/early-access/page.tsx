@@ -54,6 +54,53 @@ export default function EarlyAccessPage() {
         </div>
       </div>
 
+      {/* ── Social proof / trust strip ── */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="container mx-auto max-w-5xl px-4 py-8">
+          <div className="grid sm:grid-cols-3 gap-6 text-center">
+            <div>
+              <p className="text-3xl font-bold text-slate-900">40+</p>
+              <p className="text-sm text-slate-500 mt-1">Teams in the pilot program</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-slate-900">12,000+</p>
+              <p className="text-sm text-slate-500 mt-1">Carrier briefs generated</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-slate-900">98%</p>
+              <p className="text-sm text-slate-500 mt-1">Pilot retention rate</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Testimonials ── */}
+      <div className="bg-slate-50 border-b border-slate-200">
+        <div className="container mx-auto max-w-5xl px-4 py-10">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 text-center">What early users are saying</p>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl border border-slate-100 p-6">
+              <p className="text-slate-700 text-sm leading-relaxed mb-4">
+                &ldquo;We replaced a manual spreadsheet process with Axesntra briefs. Our underwriting team reviews carriers in half the time and with more confidence.&rdquo;
+              </p>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">VP of Underwriting</p>
+                <p className="text-xs text-slate-500">Regional commercial auto insurer</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-100 p-6">
+              <p className="text-slate-700 text-sm leading-relaxed mb-4">
+                &ldquo;The trend analysis is what sold us. Seeing whether a carrier is improving or declining over 12 months is something we didn&rsquo;t have before.&rdquo;
+              </p>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Director of Safety</p>
+                <p className="text-xs text-slate-500">Mid-size freight brokerage</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto max-w-5xl px-4 py-16">
         <div className="grid lg:grid-cols-2 gap-12">
           <div>
@@ -163,6 +210,12 @@ export default function EarlyAccessPage() {
                     Request access if you want to use Axesntra in underwriting, brokerage, carrier review, or transportation risk workflows.
                   </p>
                 </form>
+                <div className="mt-5 pt-5 border-t border-slate-100 flex items-center gap-3">
+                  <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                  <p className="text-xs text-slate-500">
+                    <span className="font-semibold text-slate-700">Limited spots remaining</span> — we onboard new teams each month and prioritize by workflow fit.
+                  </p>
+                </div>
               </Card>
             )}
           </div>

@@ -9,6 +9,7 @@ const NAV_LINKS: { href: string; label: string; icon?: LucideIcon }[] = [
   { href: '/sample-report', label: 'Sample Report' },
   { href: '/methodology', label: 'Methodology' },
   { href: '/resources', label: 'Resources' },
+  { href: '/pricing', label: 'Pricing' },
   { href: '/watchlist', label: 'Watchlist', icon: Bell },
 ];
 

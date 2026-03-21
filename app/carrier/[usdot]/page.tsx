@@ -227,9 +227,17 @@ export default function CarrierPage() {
 
         <div className="grid lg:grid-cols-2 gap-6 mt-6">
           <Card className="p-6">
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">
-              Risk Summary
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-slate-900">
+                Risk Summary
+              </h2>
+              <Link
+                href="/methodology"
+                className="text-xs font-medium text-sky-600 hover:text-sky-500 transition-colors"
+              >
+                View methodology
+              </Link>
+            </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-slate-600">Overall Risk</span>
@@ -287,11 +295,19 @@ export default function CarrierPage() {
 
         <div className="mt-6">
           <Card className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Info className="h-5 w-5 text-slate-700" />
-              <h2 className="text-lg font-semibold text-slate-900">
-                What Drove This Score
-              </h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-slate-700" />
+                <h2 className="text-lg font-semibold text-slate-900">
+                  What Drove This Score
+                </h2>
+              </div>
+              <Link
+                href="/methodology"
+                className="text-xs font-medium text-sky-600 hover:text-sky-500 transition-colors whitespace-nowrap"
+              >
+                How is this scored?
+              </Link>
             </div>
             <p className="text-sm text-slate-600 mb-5">
               Contribution percentages show how much each category affects the overall risk assessment.
