@@ -196,6 +196,52 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Mid-page Sample Report CTA ── */}
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl px-8 py-7">
+            <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
+              {/* Left: copy + preview card */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">See it before you sign up</p>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                  Read a real carrier risk brief →
+                </h2>
+                <p className="text-blue-700 text-sm leading-relaxed mb-5">
+                  From raw FMCSA data to a complete risk brief — trend charts, risk scores, and remediation steps — in seconds.
+                </p>
+                {/* Preview card */}
+                <div className="bg-white border border-blue-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">ACME Transport LLC · Sample brief</p>
+                    <p className="text-xs text-blue-600">4 risk categories · 12-month trend · 3 remediation actions</p>
+                  </div>
+                </div>
+              </div>
+              {/* Right: CTA buttons */}
+              <div className="flex flex-col gap-3 flex-shrink-0">
+                <Link
+                  href="/sample-report"
+                  className="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-900 font-semibold text-sm px-6 py-3 rounded-xl hover:border-slate-300 transition-colors"
+                >
+                  View sample report
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/early-access"
+                  className="text-sm text-slate-600 hover:text-slate-900 underline text-center transition-colors"
+                >
+                  Or request early access
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 bg-slate-900">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="text-center mb-10">

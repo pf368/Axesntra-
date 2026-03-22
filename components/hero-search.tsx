@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Loader, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { Search, Loader, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 /* ── Animated background grid ─────────────────────────────── */
@@ -176,14 +177,40 @@ export function HeroSearch() {
 
           {/* ── Left column: search content ── */}
           <div className="flex-1 min-w-0 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-blue-500/20 text-blue-300 text-xs font-medium px-3 py-1.5 rounded-full mb-6 uppercase tracking-wider">
-              Carrier Intelligence Platform
+            <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 text-xs font-medium px-3 py-1.5 rounded-full mb-6">
+              <span className="w-2 h-2 bg-emerald-400 rounded-full" />
+              Currently in private pilot · 40+ teams enrolled
             </div>
 
-            <h1 className="text-5xl font-bold mb-4 leading-tight">Axesntra</h1>
-            <p className="text-xl text-slate-300 mb-10 max-w-2xl mx-auto lg:mx-0">
-              Carrier intelligence for insurance, freight, and transportation teams. Screen carriers, understand safety trends, and identify operational risk before it becomes exposure.
+            <h1 className="text-5xl font-bold mb-4 leading-tight">Carrier intelligence for insurance and freight</h1>
+            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0">
+              Screen carriers, understand safety trends, and identify operational risk before it becomes exposure.
             </p>
+
+            {/* ── Stats row ── */}
+            <div className="grid grid-cols-3 divide-x divide-white/10 bg-slate-800/60 rounded-xl mb-6 max-w-xl mx-auto lg:mx-0">
+              {[
+                { value: '98%',    label: 'Pilot retention rate' },
+                { value: '12k+',   label: 'Carrier briefs generated' },
+                { value: 'Daily',  label: 'Updated via FMCSA SMS' },
+              ].map((stat) => (
+                <div key={stat.value} className="flex flex-col items-center justify-center text-center px-4 py-4">
+                  <p className="text-white font-bold text-xl leading-tight">{stat.value}</p>
+                  <p className="text-slate-400 text-xs mt-1">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Primary CTA ── */}
+            <div className="mb-8 flex justify-center lg:justify-start">
+              <Link
+                href="/early-access"
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold px-7 py-3.5 rounded-xl transition-colors"
+              >
+                Request early access
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
 
             {loading ? (
               <div className="bg-white/10 backdrop-blur rounded-2xl p-8 max-w-xl mx-auto lg:mx-0">
@@ -197,6 +224,7 @@ export function HeroSearch() {
               </div>
             ) : (
               <>
+                <p className="text-xs text-slate-500 mb-2 text-center lg:text-left uppercase tracking-wider">Or explore a carrier now</p>
                 <form onSubmit={handleSearch} className="flex gap-3 max-w-xl mx-auto lg:mx-0 mb-4">
                   <div className="flex-1 relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
