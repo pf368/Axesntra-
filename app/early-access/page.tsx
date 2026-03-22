@@ -31,7 +31,6 @@ const USE_CASES = [
 export default function EarlyAccessPage() {
   const [submitted, setSubmitted] = useState(false);
   const [email, setEmail] = useState('');
-  const [company, setCompany] = useState('');
   const [role, setRole] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,7 +46,7 @@ export default function EarlyAccessPage() {
             <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
             Currently in private pilot
           </div>
-          <h1 className="text-4xl font-bold mb-4">Request Early Access to Axesntra</h1>
+          <h1 className="text-4xl font-bold mb-4">Join 40+ teams already using Axesntra</h1>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto">
             Axesntra is currently being refined with a limited group of insurance, brokerage, and transportation teams. Early access users help shape the product while gaining direct exposure to the current screening, trend analysis, and remediation workflow.
           </p>
@@ -79,22 +78,95 @@ export default function EarlyAccessPage() {
         <div className="container mx-auto max-w-5xl px-4 py-10">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 text-center">What early users are saying</p>
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-slate-100 p-6">
+            {/* Testimonial 1 */}
+            <div className="bg-white rounded-xl border border-blue-200 p-6 ring-1 ring-blue-100">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  RCI
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Regional Commercial Insurer</p>
+                  <p className="text-xs text-slate-500">Southeast US · 200–500 employees</p>
+                </div>
+              </div>
               <p className="text-slate-700 text-sm leading-relaxed mb-4">
                 &ldquo;We replaced a manual spreadsheet process with Axesntra briefs. Our underwriting team reviews carriers in half the time and with more confidence.&rdquo;
               </p>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">VP of Underwriting</p>
-                <p className="text-xs text-slate-500">Regional commercial auto insurer</p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">VP of Underwriting</p>
+                  <p className="text-xs text-slate-500">Commercial auto insurance</p>
+                </div>
+                <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full">Pilot user · 6 months</span>
               </div>
             </div>
+
+            {/* Testimonial 2 */}
             <div className="bg-white rounded-xl border border-slate-100 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  MFB
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Mid-size Freight Brokerage</p>
+                  <p className="text-xs text-slate-500">Midwest · 50–200 employees</p>
+                </div>
+              </div>
               <p className="text-slate-700 text-sm leading-relaxed mb-4">
                 &ldquo;The trend analysis is what sold us. Seeing whether a carrier is improving or declining over 12 months is something we didn&rsquo;t have before.&rdquo;
               </p>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Director of Safety</p>
-                <p className="text-xs text-slate-500">Mid-size freight brokerage</p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Director of Safety</p>
+                  <p className="text-xs text-slate-500">Freight brokerage</p>
+                </div>
+                <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full">Pilot user · 4 months</span>
+              </div>
+            </div>
+
+            {/* TODO: replace with real quotes */}
+            <div className="bg-white rounded-xl border border-slate-100 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  NTL
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">National TPA, Trucking Division</p>
+                  <p className="text-xs text-slate-500">National · 500+ employees</p>
+                </div>
+              </div>
+              <p className="text-slate-700 text-sm leading-relaxed mb-4">
+                &ldquo;The executive-ready brief format makes it easy to present carrier risk decisions to leadership without building a deck from scratch every time.&rdquo;
+              </p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Risk Operations Lead</p>
+                  <p className="text-xs text-slate-500">Third-party administrator</p>
+                </div>
+                <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full">Pilot user · 3 months</span>
+              </div>
+            </div>
+
+            {/* TODO: replace with real quotes */}
+            <div className="bg-white rounded-xl border border-slate-100 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  SCB
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Specialty Commercial Broker</p>
+                  <p className="text-xs text-slate-500">West Coast · 20–50 employees</p>
+                </div>
+              </div>
+              <p className="text-slate-700 text-sm leading-relaxed mb-4">
+                &ldquo;Having remediation steps tied to the actual issues found in the carrier profile is a completely different experience from pulling raw FMCSA data yourself.&rdquo;
+              </p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Principal Broker</p>
+                  <p className="text-xs text-slate-500">Commercial insurance</p>
+                </div>
+                <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full">Pilot user · 2 months</span>
               </div>
             </div>
           </div>
@@ -151,6 +223,13 @@ export default function EarlyAccessPage() {
               </Card>
             ) : (
               <Card className="p-8">
+                {/* Urgency banner */}
+                <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6">
+                  <span className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0" />
+                  <p className="text-xs text-amber-800 font-medium">
+                    Limited spots — we onboard new teams each month by workflow fit
+                  </p>
+                </div>
                 <h2 className="text-xl font-bold text-slate-900 mb-2">Apply for early access</h2>
                 <p className="text-slate-600 text-sm mb-6">
                   Tell us about your team and how you expect to use Axesntra. We review all requests and respond directly.
@@ -166,19 +245,6 @@ export default function EarlyAccessPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@company.com"
-                      className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Company name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      placeholder="Acme Insurance Co."
                       className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
                     />
                   </div>
@@ -206,16 +272,10 @@ export default function EarlyAccessPage() {
                     Request Access
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
-                  <p className="text-xs text-slate-500 text-center">
-                    Request access if you want to use Axesntra in underwriting, brokerage, carrier review, or transportation risk workflows.
+                  <p className="text-xs text-slate-400 text-center">
+                    We review applications weekly and reply within 3 business days. No spam.
                   </p>
                 </form>
-                <div className="mt-5 pt-5 border-t border-slate-100 flex items-center gap-3">
-                  <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                  <p className="text-xs text-slate-500">
-                    <span className="font-semibold text-slate-700">Limited spots remaining</span> — we onboard new teams each month and prioritize by workflow fit.
-                  </p>
-                </div>
               </Card>
             )}
           </div>
