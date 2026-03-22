@@ -53,93 +53,60 @@ function AnimatedGrid() {
 function ReportPreviewCard() {
   return (
     <div
-      className="bg-white rounded-2xl overflow-hidden w-full"
+      className="bg-[#0f172a] rounded-2xl overflow-hidden w-full"
       style={{
         boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
         transform: 'translateY(-8px)',
-        maskImage: 'linear-gradient(to bottom, black 55%, transparent 95%)',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 55%, transparent 95%)',
+        maskImage: 'linear-gradient(to bottom, black 60%, transparent 95%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 95%)',
       }}
     >
-      {/* ── Dark header bar ── */}
-      <div className="bg-[#0f172a] px-5 py-4 border-b border-slate-700/50">
-        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-slate-400 mb-1.5">
+      {/* ── Header ── */}
+      <div className="px-5 py-5 border-b border-slate-700/60">
+        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-slate-500 mb-2">
           Carrier Risk Brief
         </p>
-        <h3 className="text-white font-bold text-lg leading-tight mb-0.5">
+        <h3 className="text-white font-bold text-xl leading-tight mb-1">
           ACME Transport LLC
         </h3>
-        <p className="text-xs text-slate-500">USDOT 491180 | MC 123456</p>
+        <p className="text-xs text-slate-500">USDOT 491180 · MC 123456</p>
       </div>
 
-      {/* ── Two-column content area ── */}
-      <div className="flex gap-0 divide-x divide-slate-100">
+      {/* ── Badges row ── */}
+      <div className="px-5 py-4 flex flex-wrap gap-2 border-b border-slate-700/60">
+        <span className="inline-flex items-center gap-1.5 bg-amber-900/50 text-amber-400 border border-amber-700/50 px-3 py-1.5 rounded-full text-xs font-semibold">
+          ↗ Elevated risk
+        </span>
+        <span className="inline-flex items-center gap-1 bg-red-900/40 text-red-400 border border-red-700/40 px-3 py-1.5 rounded-full text-xs font-semibold">
+          Worsening trend
+        </span>
+      </div>
 
-        {/* Left: badges */}
-        <div className="flex-1 px-5 py-4 space-y-4">
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 mb-1.5">
-              Risk Assessment
-            </p>
-            <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full text-xs font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
-              Elevated
-            </span>
-          </div>
-
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 mb-1.5">
-              12-Month Trend
-            </p>
-            <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-full text-xs font-semibold">
-              ↗ Worsening
-            </span>
-          </div>
-
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 mb-1.5">
-              Confidence
-            </p>
-            <p className="text-sm font-semibold text-slate-900">Moderate</p>
-          </div>
-        </div>
-
-        {/* Right: At-a-Glance cards */}
-        <div className="flex-1 px-4 py-4 space-y-2">
-          <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-slate-400 mb-2">
-            At-a-Glance
+      {/* ── Key metrics row ── */}
+      <div className="px-5 py-4 flex gap-8 border-b border-slate-700/60">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-widest text-slate-500 mb-1">
+            Top Driver
           </p>
-          {[
-            { label: 'Top Driver of Risk',        value: 'Vehicle Maintenance Deficiencies' },
-            { label: 'Leading Score Contributor',  value: 'Maintenance · 32%' },
-            { label: 'Recommended Action',         value: 'Weekly maintenance gate audit' },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="rounded-lg border border-slate-200 border-l-4 px-3 py-2.5"
-              style={{ borderLeftColor: '#f97316' }}
-            >
-              <p className="text-[9px] font-medium uppercase tracking-wider text-slate-400 mb-0.5">
-                {item.label}
-              </p>
-              <p className="text-xs font-semibold text-slate-900 leading-snug">
-                {item.value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── AI Safety Advisor bar ── */}
-      <div className="bg-slate-900 px-5 py-3 flex items-center gap-2.5">
-        <div className="w-6 h-6 bg-teal-500/20 rounded-md flex items-center justify-center flex-shrink-0">
-          <Sparkles className="h-3.5 w-3.5 text-teal-400" />
+          <p className="text-sm font-semibold text-white">Vehicle Maintenance</p>
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-teal-400">
-            AI Safety Advisor
+          <p className="text-[10px] font-medium uppercase tracking-widest text-slate-500 mb-1">
+            Confidence
           </p>
-          <p className="text-[11px] text-slate-400">Risk Analysis &amp; Recommendations</p>
+          <p className="text-sm font-semibold text-white">Moderate</p>
+        </div>
+      </div>
+
+      {/* ── Recommended action ── */}
+      <div className="px-5 py-4">
+        <div className="bg-slate-800/70 rounded-xl px-4 py-3">
+          <p className="text-[10px] font-medium uppercase tracking-widest text-slate-500 mb-1">
+            Recommended Action
+          </p>
+          <p className="text-sm font-semibold text-white leading-snug">
+            Weekly maintenance gate audit
+          </p>
         </div>
       </div>
     </div>
