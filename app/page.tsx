@@ -97,7 +97,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-slate-900 mb-4">
-              Built for teams that evaluate carriers
+              Built for every team managing fleet risk
             </h2>
           </div>
 
@@ -132,6 +132,14 @@ export default function HomePage() {
               </div>
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Transportation operators and 3PLs</h3>
               <p className="text-sm text-slate-600 leading-relaxed">Use carrier intelligence to support vendor review and escalation workflows.</p>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-8 border border-slate-100">
+              <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center mb-4">
+                <Truck className="h-5 w-5 text-indigo-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Fleet operators</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">Construction, landscaping, utilities, and any business with a DOT number and drivers. Know your FMCSA safety profile before the next renewal, roadside inspection, or incident.</p>
             </div>
           </div>
         </div>

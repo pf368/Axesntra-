@@ -149,9 +149,9 @@ export function HeroSearch() {
               Currently in private pilot · 40+ teams enrolled
             </div>
 
-            <h1 className="text-5xl font-bold mb-4 leading-tight">Carrier intelligence for insurance and freight</h1>
+            <h1 className="text-5xl font-bold mb-4 leading-tight">Your FMCSA record is public. Understanding it shouldn&apos;t be hard.</h1>
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0">
-              Screen carriers, understand safety trends, and identify operational risk before it becomes exposure.
+              Every violation, crash, and out-of-service event on your USDOT record is visible to your insurer, your customers, and anyone who looks. Axesntra shows you what they see — and what to do about it.
             </p>
 
             {/* ── Stats row ── */}
@@ -191,7 +191,7 @@ export function HeroSearch() {
               </div>
             ) : (
               <>
-                <p className="text-xs text-slate-500 mb-2 text-center lg:text-left uppercase tracking-wider">Or explore a carrier now</p>
+                <p className="text-xs text-slate-500 mb-2 text-center lg:text-left uppercase tracking-wider">Or check your own DOT record</p>
                 <form onSubmit={handleSearch} className="flex gap-3 max-w-xl mx-auto lg:mx-0 mb-4">
                   <div className="flex-1 relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -199,7 +199,7 @@ export function HeroSearch() {
                       type="text"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Enter a USDOT number or carrier name"
+                      placeholder="Enter any USDOT number — including your own"
                       className="w-full pl-12 pr-4 py-3.5 bg-white text-slate-900 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
                     />
                   </div>

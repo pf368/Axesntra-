@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   CircleCheck as CheckCircle,
+  Circle,
   ArrowRight,
   Shield,
   Building2,
@@ -14,9 +15,28 @@ import {
 
 const TIERS = [
   {
+    name: 'Free',
+    icon: Shield,
+    description: 'For fleet operators, safety managers, or anyone who wants to check a USDOT record before committing.',
+    price: '$0 / month',
+    priceNote: 'No credit card required',
+    features: [
+      '3 carrier lookups per month',
+      'Basic risk score (overall only)',
+      'Authority & operating status check',
+      'Safety rating summary',
+    ],
+    freeFeatures: true,
+    cta: 'Start free — no card needed',
+    ctaHref: '/early-access',
+    highlight: false,
+  },
+  {
     name: 'Starter',
     icon: Zap,
-    description: 'For individual brokers or small teams getting started with structured carrier screening.',
+    description: 'For brokers, safety managers, and teams who need full AI-powered risk briefs and trend data.',
+    price: null,
+    priceNote: null,
     features: [
       'Carrier risk briefs on demand',
       'Multi-factor risk scoring',
@@ -24,13 +44,17 @@ const TIERS = [
       'Executive memo summaries',
       'Email support',
     ],
+    freeFeatures: false,
     cta: 'Get Started',
+    ctaHref: '#contact',
     highlight: false,
   },
   {
     name: 'Professional',
     icon: Shield,
     description: 'For underwriting, safety, or brokerage teams that need deeper analysis and monitoring.',
+    price: null,
+    priceNote: null,
     features: [
       'Everything in Starter',
       'Carrier watchlist with alerts',
@@ -39,13 +63,17 @@ const TIERS = [
       'Carrier comparison tools',
       'Priority support',
     ],
+    freeFeatures: false,
     cta: 'Contact Sales',
+    ctaHref: '#contact',
     highlight: true,
   },
   {
     name: 'Enterprise',
     icon: Building2,
     description: 'For organizations that need volume, integrations, and dedicated onboarding.',
+    price: null,
+    priceNote: null,
     features: [
       'Everything in Professional',
       'API access',
@@ -54,7 +82,9 @@ const TIERS = [
       'Dedicated account manager',
       'Custom reporting',
     ],
+    freeFeatures: false,
     cta: 'Contact Sales',
+    ctaHref: '#contact',
     highlight: false,
   },
 ];
@@ -83,8 +113,8 @@ export default function PricingPage() {
       </div>
 
       {/* ── Tier cards ── */}
-      <div className="container mx-auto max-w-5xl px-4 -mt-10">
-        <div className="grid md:grid-cols-3 gap-6">
+      <div className="container mx-auto max-w-6xl px-4 -mt-10">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {TIERS.map((tier) => (
             <Card
               key={tier.name}
@@ -106,22 +136,37 @@ export default function PricingPage() {
                 <h2 className="text-lg font-bold text-slate-900">{tier.name}</h2>
               </div>
               <p className="text-sm text-slate-600 mb-5 leading-relaxed">{tier.description}</p>
-              <p className="text-2xl font-bold text-slate-900 mb-5">
-                Contact us
-                <span className="block text-xs font-normal text-slate-500 mt-1">Custom pricing for your team</span>
-              </p>
+              {tier.price ? (
+                <p className="text-2xl font-bold text-slate-900 mb-5">
+                  {tier.price}
+                  {tier.priceNote && (
+                    <span className="block text-xs font-normal text-slate-500 mt-1">{tier.priceNote}</span>
+                  )}
+                </p>
+              ) : (
+                <p className="text-2xl font-bold text-slate-900 mb-5">
+                  Contact us
+                  <span className="block text-xs font-normal text-slate-500 mt-1">Custom pricing for your team</span>
+                </p>
+              )}
               <ul className="space-y-2.5 mb-6 flex-1">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm text-slate-700">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    {tier.freeFeatures ? (
+                      <Circle className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    )}
                     {f}
                   </li>
                 ))}
               </ul>
               <a
-                href="#contact"
+                href={tier.ctaHref}
                 className={`block text-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
-                  tier.highlight
+                  tier.freeFeatures
+                    ? 'border border-slate-300 text-slate-700 hover:border-slate-400 hover:bg-slate-50'
+                    : tier.highlight
                     ? 'bg-sky-500 text-white hover:bg-sky-400'
                     : 'bg-slate-900 text-white hover:bg-slate-700'
                 }`}
