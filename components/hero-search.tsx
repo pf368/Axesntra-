@@ -403,15 +403,16 @@ export function HeroSearch() {
       const [data] = await Promise.all([
         fetch(`/api/carriers/${encodeURIComponent(trimmed)}`).then((r) => r.json()),
         new Promise((r) => setTimeout(r, 1200)),
-      ]) as [{ status: string; brief?: CarrierBrief; fallbackBrief?: CarrierBrief; message?: string }, unknown];
+      ]) as [{ status: number | string; data?: CarrierBrief; lookupStatus?: string; error?: string }, unknown];
 
-      const foundBrief = data.brief ?? data.fallbackBrief;
+      // API returns { data: brief } on success/fallback, { error } on failure
+      const foundBrief = data.data;
       if (foundBrief) {
         setBrief(foundBrief);
         setStep(2);
       } else {
         setFetchError(
-          data.status === 'not_found'
+          data.status === 404
             ? `USDOT ${trimmed} was not found. Please try a different number.`
             : 'Unable to retrieve carrier data. Please try again.',
         );
