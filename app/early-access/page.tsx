@@ -29,12 +29,17 @@ const USE_CASES = [
 ];
 
 export default function EarlyAccessPage() {
-  const [submitted, setSubmitted] = useState(false);
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState('');
+  const [submitted, setSubmitted]     = useState(false);
+  const [email, setEmail]             = useState('');
+  const [name, setName]               = useState('');
+  const [company, setCompany]         = useState('');
+  const [role, setRole]               = useState('');
+  const [volume, setVolume]           = useState('');
+  const [referralSource, setReferralSource] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // In production: POST { email, name, company, role, volume, referralSource } to /api/leads
     setSubmitted(true);
   };
 
@@ -235,39 +240,110 @@ export default function EarlyAccessPage() {
                   Tell us about your team and how you expect to use Axesntra. We review all requests and respond directly.
                 </p>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Work email
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@company.com"
-                      className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-                    />
+                  {/* Row 1: Work email + Name */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Work email *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Your name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Jane Smith"
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Your role
-                    </label>
-                    <select
-                      required
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                      className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"
-                    >
-                      <option value="">Select your role</option>
-                      <option value="underwriter">Underwriter</option>
-                      <option value="risk-manager">Risk Manager</option>
-                      <option value="broker">Broker / Agent</option>
-                      <option value="claims">Claims Professional</option>
-                      <option value="operations">Operations / 3PL</option>
-                      <option value="executive">Executive / Leadership</option>
-                      <option value="other">Other</option>
-                    </select>
+
+                  {/* Row 2: Company + Role */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Company name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                        placeholder="Acme Insurance Co."
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Your role *
+                      </label>
+                      <select
+                        required
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"
+                      >
+                        <option value="">Select your role</option>
+                        <option value="underwriter">Underwriter</option>
+                        <option value="risk-manager">Risk Manager</option>
+                        <option value="broker">Broker / Agent</option>
+                        <option value="claims">Claims Professional</option>
+                        <option value="operations">Operations / 3PL</option>
+                        <option value="executive">Executive / Leadership</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
                   </div>
+
+                  {/* Row 3: Volume + Referral source */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Carriers screened per month
+                      </label>
+                      <select
+                        value={volume}
+                        onChange={(e) => setVolume(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"
+                      >
+                        <option value="">Select volume</option>
+                        <option value="1-50">1–50</option>
+                        <option value="51-200">51–200</option>
+                        <option value="201-500">201–500</option>
+                        <option value="500+">500+</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        How did you hear about us?
+                      </label>
+                      <select
+                        value={referralSource}
+                        onChange={(e) => setReferralSource(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent bg-white"
+                      >
+                        <option value="">Select source</option>
+                        <option value="google">Google search</option>
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="event">Industry event</option>
+                        <option value="referral">Colleague / referral</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <Button type="submit" className="w-full" size="lg">
                     Request Access
                     <ArrowRight className="h-4 w-4 ml-2" />

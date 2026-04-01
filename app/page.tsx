@@ -1,4 +1,5 @@
 import { HeroSearch } from '@/components/hero-search';
+import { ContentOffersSection } from '@/components/content-offers-section';
 import Link from 'next/link';
 import { ArrowRight, Shield, TrendingUp, FileText, Zap, Building2, Truck, Users, ClipboardList, Search, ChartBar as BarChart3, BookOpen, Activity } from 'lucide-react';
 
@@ -144,6 +145,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <ContentOffersSection />
 
       <section className="py-20 bg-slate-50">
         <div className="container mx-auto px-4 max-w-4xl">
