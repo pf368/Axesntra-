@@ -12,6 +12,11 @@ export default function Page() {
       title="Why One-Time Carrier Screening Is Not Enough"
       intro="One-time carrier screening is better than no screening, but it does not solve ongoing risk. A carrier's profile can change after onboarding, and those changes may be exactly what matters most."
       cta={{ href: '/early-access', label: 'Request Early Access' }}
+      relatedAIQuestions={[
+        'Has this carrier deteriorated since we last screened them?',
+        'What changed in the last 90 days?',
+        'Should we re-screen this carrier before renewal?',
+      ]}
     >
       <h2>What one-time screening misses</h2>
       <p>

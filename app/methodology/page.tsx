@@ -4,8 +4,8 @@ import { ArrowRight } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Scoring Methodology - Axesntra',
-  description: 'Understand what each score component measures in the Axesntra model, how it is meant to be used, and where public-data limits still apply.',
+  title: 'How Axesntra Works — Scoring Methodology',
+  description: 'Understand how the AI scores carriers, what each BASIC category measures, and where public-data limits apply.',
 };
 
 export default function MethodologyPage() {
@@ -13,14 +13,20 @@ export default function MethodologyPage() {
     <div className="min-h-screen bg-slate-50">
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-16 text-white">
         <div className="container mx-auto max-w-4xl px-4">
-          <h1 className="text-4xl font-bold mb-4">Scoring Methodology</h1>
+          <h1 className="text-4xl font-bold mb-4">How Axesntra Works</h1>
           <p className="text-lg text-slate-300 max-w-3xl">
-            Understand what each score component measures, how the model is meant to be used, and where public-data limits still apply.
+            Understand how the AI scores carriers, what each BASIC category measures, and where public-data limits apply.
           </p>
         </div>
       </div>
 
       <div className="container mx-auto max-w-4xl px-4 py-16">
+        <Card className="p-8 mb-8 bg-blue-50 border-blue-200">
+          <p className="text-slate-700 leading-relaxed">
+            Axesntra&apos;s analysis is grounded in publicly available FMCSA SMS data. The AI synthesizes 5 BASIC categories, 12-month trend data, inspection history, and crash records into a single risk brief — in seconds. This page explains exactly what goes into that analysis.
+          </p>
+        </Card>
+
         <Card className="p-8 mb-8">
           <h2 className="text-2xl font-semibold text-slate-900 mb-4">What the score is for</h2>
           <p className="text-slate-700 leading-relaxed mb-4">
@@ -161,7 +167,7 @@ export default function MethodologyPage() {
             href="/sample-report"
             className="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-slate-800 transition-colors"
           >
-            View Sample Report
+            See a live demo
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

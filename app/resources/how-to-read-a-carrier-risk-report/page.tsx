@@ -11,7 +11,12 @@ export default function Page() {
     <ContentPage
       title="How to Read a Carrier Risk Report"
       intro="A carrier risk report should help users answer three questions quickly: what is the overall risk level, what is driving that risk, and what action should be taken next. The goal is not just to display data. The goal is to support a decision."
-      cta={{ href: '/sample-report', label: 'View Sample Report' }}
+      cta={{ href: '/sample-report', label: 'See a live demo' }}
+      relatedAIQuestions={[
+        'What does the risk score mean for this carrier?',
+        'Which section of the report should I focus on first?',
+        'How do I interpret the BASIC percentile bars?',
+      ]}
     >
       <h2>Start with the overall score</h2>
       <p>

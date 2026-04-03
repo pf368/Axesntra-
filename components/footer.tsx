@@ -35,7 +35,7 @@ const FOOTER_SECTIONS = [
       { href: '/methodology', label: 'Methodology' },
       { href: '/pricing', label: 'Pricing' },
       { href: '/early-access', label: 'Early Access' },
-      { href: '/sample-report', label: 'Sample Report' },
+      { href: '/sample-report', label: 'Live brief demo' },
       { href: '/resources', label: 'All Resources' },
     ],
   },

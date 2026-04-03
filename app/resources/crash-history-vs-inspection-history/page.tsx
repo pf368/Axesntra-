@@ -11,7 +11,12 @@ export default function Page() {
     <ContentPage
       title="Crash History vs Inspection History: What Matters More?"
       intro="Neither crash history nor inspection history should be treated as sufficient on its own. They answer different questions. Crash history reflects loss exposure. Inspection history often shows the operational pattern that may help explain risk before more serious outcomes occur."
-      cta={{ href: '/sample-report', label: 'View Sample Report' }}
+      cta={{ href: '/sample-report', label: 'See a live demo' }}
+      relatedAIQuestions={[
+        'How many crashes has this carrier had in the last 24 months?',
+        'Is the crash rate worsening or improving?',
+        'How does their inspection history compare to similar carriers?',
+      ]}
     >
       <h2>Why inspection history matters</h2>
       <p>

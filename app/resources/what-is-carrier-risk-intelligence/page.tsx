@@ -11,7 +11,12 @@ export default function Page() {
     <ContentPage
       title="What Is Carrier Risk Intelligence?"
       intro="Carrier risk intelligence is the process of evaluating whether a motor carrier presents elevated operational, safety, or compliance risk. Rather than relying on one record or one score, it combines multiple signals — such as inspections, crashes, out-of-service history, and trend direction — into a clearer view of exposure."
-      cta={{ href: '/sample-report', label: 'View Sample Report' }}
+      cta={{ href: '/sample-report', label: 'See a live demo' }}
+      relatedAIQuestions={[
+        'What risk factors should I look at for this carrier?',
+        'How is the risk score calculated?',
+        'Which BASIC category matters most for underwriting?',
+      ]}
     >
       <h2>Why it matters</h2>
       <p>

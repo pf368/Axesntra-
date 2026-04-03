@@ -31,6 +31,7 @@ interface ContentPageProps {
   category?: string;
   readingTime?: string;
   currentHref?: string;
+  relatedAIQuestions?: string[];
 }
 
 function InlineSearchCta() {
@@ -93,6 +94,7 @@ export function ContentPage({
   category = 'Guide',
   readingTime = '4 min read',
   currentHref,
+  relatedAIQuestions,
 }: ContentPageProps) {
   const related = ALL_RESOURCES.filter((r) => r.href !== currentHref).slice(0, 3);
 
@@ -172,6 +174,36 @@ export function ContentPage({
         <InlineSearchCta />
       </div>
 
+      {/* ── Related AI questions ──────────────────────────────── */}
+      {relatedAIQuestions && relatedAIQuestions.length > 0 && (
+        <div className="container mx-auto max-w-3xl px-6 pb-8">
+          <div className="border-t border-slate-200 pt-10">
+            <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-2">
+              Ask the AI about this topic
+            </p>
+            <p className="text-sm text-slate-600 mb-5">
+              These are the kinds of questions Axesntra&apos;s AI Safety Advisor can answer in seconds.
+            </p>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {relatedAIQuestions.map((q) => (
+                <div
+                  key={q}
+                  className="text-sm bg-slate-100 text-slate-700 px-4 py-2 rounded-full border border-slate-200"
+                >
+                  {q}
+                </div>
+              ))}
+            </div>
+            <Link
+              href="/early-access"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
+            >
+              Get answers for your actual carriers &rarr; Try Axesntra free
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* ── CTA panel ───────────────────────────────────────── */}
       {cta && (
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 py-20 px-6">
@@ -236,7 +268,7 @@ export function ContentPage({
                 href="/sample-report"
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
               >
-                View sample report
+                See a live demo
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
