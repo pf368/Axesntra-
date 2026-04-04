@@ -40,7 +40,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useWatchlist } from '@/hooks/useWatchlist';
 
 function getContributionColor(contribution: number) {
@@ -51,7 +51,9 @@ function getContributionColor(contribution: number) {
 
 export default function CarrierPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const usdot = params.usdot as string;
+  const sourcePref = searchParams.get('source');
 
   const [data, setData] = useState<CarrierBrief | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,12 +66,17 @@ export default function CarrierPage() {
     setError(null);
     setLookupStatus(null);
     try {
-      const response = await fetch(`/api/carriers/${usdot}`);
+      // If source=fmcsa-api, use the dedicated FMCSA API endpoint
+      const url = sourcePref === 'fmcsa-api'
+        ? `/api/fmcsa?usdot=${usdot}`
+        : `/api/carriers/${usdot}`;
+
+      const response = await fetch(url);
       const result = await response.json();
 
       if (result.data) {
         setData(result.data);
-        setLookupStatus(result.lookupStatus);
+        setLookupStatus(result.lookupStatus || (sourcePref === 'fmcsa-api' ? 'Live FMCSA API' : null));
       } else {
         setError(result.error || 'Failed to fetch carrier data');
         setLookupStatus(result.lookupStatus);

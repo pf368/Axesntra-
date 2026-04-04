@@ -2,6 +2,8 @@ import { mockCarriers } from './mock-carriers';
 import { CarrierBrief, CarrierListItem, CarrierTrends, ApiResponse, CarrierLookupResult } from './types';
 import { getPublicCarrierProfileByUsdot, getPublicSmsSummary } from './public-fmcsa-service';
 import { buildHybridCarrierBrief } from './hybrid-assembly-service';
+import { fetchCarrierFromFmcsaApi } from './fmcsa-api-service';
+import { buildBriefFromFmcsaApi } from './fmcsa-brief-builder';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -29,6 +31,23 @@ export async function getCarrierByUsdot(usdot: string): Promise<CarrierLookupRes
     };
   }
 
+  // Try FMCSA API first (requires API key in .env)
+  if (process.env.FMCSA_API_KEY) {
+    if (isDev) console.log('[Carrier Service] Trying FMCSA API with key');
+    const apiResult = await fetchCarrierFromFmcsaApi(usdot);
+    if (apiResult.success && apiResult.carrier) {
+      if (isDev) console.log('[Carrier Service] FMCSA API lookup succeeded:', apiResult.carrier.legalName);
+      const brief = buildBriefFromFmcsaApi(apiResult.carrier);
+      return {
+        status: 'success',
+        brief,
+        lookupStatus: 'Live FMCSA API data retrieved successfully',
+      };
+    }
+    if (isDev) console.log('[Carrier Service] FMCSA API failed, falling back to public scraping:', apiResult.error);
+  }
+
+  // Fallback: public FMCSA HTML scraping
   const lookupResult = await getPublicCarrierProfileByUsdot(usdot);
 
   if (lookupResult.success && lookupResult.profile) {
