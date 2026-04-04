@@ -6,6 +6,37 @@
 import { CarrierBrief, RiskLevel, TrendDirection } from './types';
 import { FmcsaCarrierRecord } from './fmcsa-api-service';
 
+/**
+ * Ensures a value is a plain string before it reaches React rendering.
+ * The FMCSA API returns nested objects for many fields that TypeScript
+ * types as string (e.g. carrierOperation → {carrierOperationCode, carrierOperationDesc}).
+ */
+function safeStr(val: unknown, fallback = ''): string {
+  if (val == null) return fallback;
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (typeof val === 'object') {
+    const obj = val as Record<string, unknown>;
+    // Try common FMCSA API patterns: *Desc, *Description, *Name, *Code
+    for (const key of Object.keys(obj)) {
+      if (/desc|description|name/i.test(key) && typeof obj[key] === 'string') {
+        return obj[key] as string;
+      }
+    }
+    for (const key of Object.keys(obj)) {
+      if (/code/i.test(key) && typeof obj[key] === 'string') {
+        return obj[key] as string;
+      }
+    }
+    // Last resort: first string value
+    for (const v of Object.values(obj)) {
+      if (typeof v === 'string') return v;
+    }
+    return fallback;
+  }
+  return String(val);
+}
+
 function deriveRiskLevel(carrier: FmcsaCarrierRecord): RiskLevel {
   // Use BASIC scores if available
   if (carrier.basicScores && carrier.basicScores.length > 0) {
@@ -145,14 +176,14 @@ export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrie
 
   const brief: CarrierBrief = {
     id: `fmcsa-${carrier.dotNumber}`,
-    carrierName: carrier.legalName || carrier.dbaName || `USDOT ${carrier.dotNumber}`,
+    carrierName: safeStr(carrier.legalName) || safeStr(carrier.dbaName) || `USDOT ${carrier.dotNumber}`,
     usdot: String(carrier.dotNumber),
-    mc: carrier.mcNumber || 'N/A',
-    status: carrier.allowedToOperate === 'Y' ? 'Active' : 'Not Authorized',
-    operationType: carrier.carrierOperation || carrier.operationClassification || 'Interstate',
-    powerUnits: carrier.totalPowerUnits ?? 0,
-    drivers: carrier.totalDrivers ?? 0,
-    mcs150Updated: formatMcs150Date(carrier.mcs150FormDate),
+    mc: safeStr(carrier.mcNumber, 'N/A'),
+    status: safeStr(carrier.allowedToOperate) === 'Y' ? 'Active' : 'Not Authorized',
+    operationType: safeStr(carrier.carrierOperation) || safeStr(carrier.operationClassification) || 'Interstate',
+    powerUnits: typeof carrier.totalPowerUnits === 'number' ? carrier.totalPowerUnits : 0,
+    drivers: typeof carrier.totalDrivers === 'number' ? carrier.totalDrivers : 0,
+    mcs150Updated: formatMcs150Date(safeStr(carrier.mcs150FormDate)),
     dataFreshness: 'Live FMCSA API',
     overallRisk,
     trend: 'Stable' as TrendDirection,
