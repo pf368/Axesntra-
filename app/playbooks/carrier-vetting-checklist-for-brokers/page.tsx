@@ -12,6 +12,11 @@ export default function Page() {
       title="Carrier Vetting Checklist for Brokers"
       intro="A broker carrier vetting checklist should create a repeatable review standard before a carrier is approved for freight. The goal is consistency. Without a checklist, carrier approval tends to depend too much on time pressure and individual judgment."
       cta={{ href: '/early-access', label: 'Request Early Access' }}
+      relatedAIQuestions={[
+        'Does this carrier pass our vetting criteria?',
+        'What red flags should I check before onboarding?',
+        'How does this carrier compare to others in our network?',
+      ]}
     >
       <h2>Step 1: Verify core carrier identity</h2>
       <p>

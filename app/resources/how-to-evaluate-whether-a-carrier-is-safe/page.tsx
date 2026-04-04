@@ -11,7 +11,12 @@ export default function Page() {
     <ContentPage
       title="How to Evaluate Whether a Carrier Is Safe"
       intro="The most reliable way to evaluate whether a carrier is safe is to review several signals together rather than relying on one metric in isolation. Inspection history, crash activity, out-of-service events, operating status, and trend direction all matter."
-      cta={{ href: '/sample-report', label: 'View Sample Report' }}
+      cta={{ href: '/sample-report', label: 'See a live demo' }}
+      relatedAIQuestions={[
+        'Is this carrier safe to use on our freight?',
+        'How does this carrier compare to the industry benchmark?',
+        "What's their 12-month trend telling me?",
+      ]}
     >
       <h2>Start with inspection history</h2>
       <p>

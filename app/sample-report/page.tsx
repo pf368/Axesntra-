@@ -15,6 +15,7 @@ import { AiGuidedPromptPanel } from '@/components/ai-guided-prompt-panel';
 import { AiComplianceProgramCards } from '@/components/ai-compliance-program-card';
 import { AiFixPlanDrawer } from '@/components/ai-fix-plan-drawer';
 import { ViolationScenarioCard } from '@/components/violation-scenario-card';
+import { ReportAIPanel } from '@/components/report-ai-panel';
 import { CarrierBrief, CarrierListItem } from '@/lib/types';
 import {
   getAiSafetyInsight,
@@ -838,6 +839,9 @@ export default function SampleReportPage() {
           </div>
         </div>
       </div>
+
+      {/* AI Advisor Panel */}
+      <ReportAIPanel />
     </div>
   );
 }

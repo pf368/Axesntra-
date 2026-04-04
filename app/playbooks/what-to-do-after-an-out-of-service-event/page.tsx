@@ -12,6 +12,11 @@ export default function Page() {
       title="What to Do After an Out-of-Service Event"
       intro="An out-of-service event should trigger structured review rather than a casual note in the file. The event may represent a one-time issue, but it may also indicate a deeper problem."
       cta={{ href: '/early-access', label: 'Request Early Access' }}
+      relatedAIQuestions={[
+        'What was the root cause of this OOS event?',
+        'What corrective action should we require?',
+        'How will this event affect their risk score?',
+      ]}
     >
       <h2>Step 1: Confirm the event details</h2>
       <p>

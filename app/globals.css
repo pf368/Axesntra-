@@ -87,6 +87,30 @@
   animation: grid-scroll 20s linear infinite;
 }
 
+/* ── Hero chat fade-in animation ── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 300ms ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* ── Print / PDF export styles ── */
 @media print {
   /* Hide interactive chrome */

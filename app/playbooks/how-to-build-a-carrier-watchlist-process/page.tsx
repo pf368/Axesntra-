@@ -12,6 +12,11 @@ export default function Page() {
       title="How to Build a Carrier Watchlist Process"
       intro="A carrier watchlist process helps teams handle borderline cases more intelligently. It creates a middle stage between full approval and outright rejection."
       cta={{ href: '/early-access', label: 'Request Early Access' }}
+      relatedAIQuestions={[
+        'Which carriers in my book should be on a watchlist?',
+        'What triggers should I set for monitoring alerts?',
+        'How often should I re-review watchlisted carriers?',
+      ]}
     >
       <h2>Step 1: Define watchlist criteria</h2>
       <p>
