@@ -43,6 +43,25 @@ import {
 import { useParams, useSearchParams } from 'next/navigation';
 import { useWatchlist } from '@/hooks/useWatchlist';
 
+function safe(val: unknown): string {
+  if (val == null) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (typeof val === 'object') {
+    const obj = val as Record<string, unknown>;
+    for (const key of Object.keys(obj)) {
+      if (/desc|description|name/i.test(key) && typeof obj[key] === 'string') {
+        return obj[key] as string;
+      }
+    }
+    for (const v of Object.values(obj)) {
+      if (typeof v === 'string') return v;
+    }
+    return '';
+  }
+  return String(val);
+}
+
 function getContributionColor(contribution: number) {
   if (contribution > 25) return 'bg-red-500';
   if (contribution > 15) return 'bg-amber-500';
@@ -204,10 +223,10 @@ export default function CarrierPage() {
 
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2 leading-tight">
-            {data.carrierName}
+            {safe(data.carrierName)}
           </h1>
           <p className="text-slate-600 text-sm">
-            USDOT {data.usdot} | MC {data.mc}
+            USDOT {safe(data.usdot)} | MC {safe(data.mc)}
           </p>
         </div>
 
@@ -257,7 +276,7 @@ export default function CarrierPage() {
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-slate-600">Confidence</span>
                 <span className="text-slate-900 font-medium">
-                  {data.confidence}
+                  {safe(data.confidence)}
                 </span>
               </div>
             </div>
@@ -296,7 +315,7 @@ export default function CarrierPage() {
               <Activity className="h-5 w-5 text-blue-600" />
               AI Summary
             </h2>
-            <p className="text-slate-700 leading-relaxed">{data.aiSummary}</p>
+            <p className="text-slate-700 leading-relaxed">{safe(data.aiSummary)}</p>
           </Card>
         </div>
 
@@ -389,7 +408,7 @@ export default function CarrierPage() {
             <MetricCard
               title="MCS-150 Freshness"
               value={data.metrics.mcs150Freshness}
-              subtitle={`Updated ${data.mcs150Updated}`}
+              subtitle={`Updated ${safe(data.mcs150Updated)}`}
               icon={Calendar}
             />
           </div>

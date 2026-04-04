@@ -6,6 +6,37 @@
 import { CarrierBrief, RiskLevel, TrendDirection } from './types';
 import { FmcsaCarrierRecord } from './fmcsa-api-service';
 
+/**
+ * Ensures a value is a plain string before it reaches React rendering.
+ * The FMCSA API returns nested objects for many fields that TypeScript
+ * types as string (e.g. carrierOperation → {carrierOperationCode, carrierOperationDesc}).
+ */
+function safeStr(val: unknown, fallback = ''): string {
+  if (val == null) return fallback;
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (typeof val === 'object') {
+    const obj = val as Record<string, unknown>;
+    // Try common FMCSA API patterns: *Desc, *Description, *Name, *Code
+    for (const key of Object.keys(obj)) {
+      if (/desc|description|name/i.test(key) && typeof obj[key] === 'string') {
+        return obj[key] as string;
+      }
+    }
+    for (const key of Object.keys(obj)) {
+      if (/code/i.test(key) && typeof obj[key] === 'string') {
+        return obj[key] as string;
+      }
+    }
+    // Last resort: first string value
+    for (const v of Object.values(obj)) {
+      if (typeof v === 'string') return v;
+    }
+    return fallback;
+  }
+  return String(val);
+}
+
 function deriveRiskLevel(carrier: FmcsaCarrierRecord): RiskLevel {
   // Use BASIC scores if available
   if (carrier.basicScores && carrier.basicScores.length > 0) {
@@ -45,11 +76,30 @@ function formatMcs150Date(raw?: string): string {
   return raw;
 }
 
+function safetyRatingLabel(code?: string): string {
+  if (!code) return '';
+  const map: Record<string, string> = {
+    S: 'Satisfactory',
+    C: 'Conditional',
+    U: 'Unsatisfactory',
+    N: 'Not Rated',
+  };
+  return map[code.toUpperCase()] || code;
+}
+
 function buildExecutiveMemo(carrier: FmcsaCarrierRecord): string {
   const name = carrier.legalName || carrier.dbaName || 'This carrier';
   const parts: string[] = [];
 
   parts.push(`${name} operates with ${carrier.totalPowerUnits ?? 'unknown'} power units and ${carrier.totalDrivers ?? 'unknown'} drivers.`);
+
+  if (carrier.operationClasses && carrier.operationClasses.length > 0) {
+    parts.push(`Operation classification: ${carrier.operationClasses.join(', ')}.`);
+  }
+
+  if (carrier.cargoCarried && carrier.cargoCarried.length > 0) {
+    parts.push(`Cargo types: ${carrier.cargoCarried.join(', ')}.`);
+  }
 
   if (carrier.allowedToOperate === 'Y') {
     parts.push('The carrier is currently authorized for operation.');
@@ -57,18 +107,52 @@ function buildExecutiveMemo(carrier: FmcsaCarrierRecord): string {
     parts.push('The carrier is NOT currently authorized for operation.');
   }
 
-  if (carrier.vehicleOosRate && carrier.vehicleOosRate > 21) {
-    parts.push(`Vehicle out-of-service rate of ${carrier.vehicleOosRate.toFixed(1)}% exceeds the 21% national benchmark.`);
+  if (carrier.safetyRating) {
+    const label = safetyRatingLabel(carrier.safetyRating);
+    parts.push(`Safety rating: ${label}${carrier.safetyRatingDate ? ` (as of ${carrier.safetyRatingDate})` : ''}.`);
+  }
+
+  const vNatAvg = parseFloat(carrier.vehicleOosRateNationalAverage || '20.72');
+  if (carrier.vehicleOosRate !== undefined) {
+    if (carrier.vehicleOosRate > vNatAvg) {
+      parts.push(`Vehicle out-of-service rate of ${carrier.vehicleOosRate.toFixed(1)}% exceeds the ${vNatAvg}% national average.`);
+    } else {
+      parts.push(`Vehicle out-of-service rate of ${carrier.vehicleOosRate.toFixed(1)}% is below the ${vNatAvg}% national average.`);
+    }
+  }
+
+  const dNatAvg = parseFloat(carrier.driverOosRateNationalAverage || '5.51');
+  if (carrier.driverOosRate !== undefined && carrier.driverOosRate > 0) {
+    if (carrier.driverOosRate > dNatAvg) {
+      parts.push(`Driver out-of-service rate of ${carrier.driverOosRate.toFixed(1)}% exceeds the ${dNatAvg}% national average.`);
+    } else {
+      parts.push(`Driver out-of-service rate of ${carrier.driverOosRate.toFixed(1)}% is below the ${dNatAvg}% national average.`);
+    }
   }
 
   if (carrier.crashTotal !== undefined && carrier.crashTotal > 0) {
-    parts.push(`${carrier.crashTotal} crash(es) recorded in the last 24 months.`);
+    const crashParts: string[] = [];
+    if (carrier.fatalCrash) crashParts.push(`${carrier.fatalCrash} fatal`);
+    if (carrier.injCrash) crashParts.push(`${carrier.injCrash} injury`);
+    if (carrier.towawayCrash) crashParts.push(`${carrier.towawayCrash} towaway`);
+    const detail = crashParts.length > 0 ? ` (${crashParts.join(', ')})` : '';
+    parts.push(`${carrier.crashTotal} crash(es) recorded in the last 24 months${detail}.`);
   }
 
   if (carrier.basicScores && carrier.basicScores.length > 0) {
     const exceeding = carrier.basicScores.filter((b) => b.exceedThreshold);
     if (exceeding.length > 0) {
       parts.push(`${exceeding.length} BASIC category(ies) exceed intervention thresholds: ${exceeding.map((b) => b.basicName).join(', ')}.`);
+    } else {
+      parts.push('No BASIC categories currently exceed intervention thresholds.');
+    }
+  }
+
+  if (carrier.bipdInsuranceOnFile && carrier.bipdRequiredAmount) {
+    const onFile = parseInt(carrier.bipdInsuranceOnFile);
+    const required = parseInt(carrier.bipdRequiredAmount);
+    if (onFile > 0 && required > 0) {
+      parts.push(`BIPD insurance: $${(onFile / 1).toLocaleString()}K on file vs $${(required / 1).toLocaleString()}K required.`);
     }
   }
 
@@ -79,10 +163,27 @@ function buildExecutiveMemo(carrier: FmcsaCarrierRecord): string {
 
 function buildAISummary(carrier: FmcsaCarrierRecord): string {
   const name = carrier.legalName || 'This carrier';
-  const parts: string[] = [`${name} — live FMCSA API data.`];
+  const risk = deriveRiskLevel(carrier);
+  const parts: string[] = [`${risk} risk profile for ${name} based on live FMCSA API data.`];
 
-  if (carrier.carrierOperation) {
-    parts.push(`Operates ${carrier.carrierOperation.toLowerCase()}.`);
+  if (carrier.operationClasses && carrier.operationClasses.length > 0) {
+    parts.push(`Operates as: ${carrier.operationClasses.join(', ')}.`);
+  } else if (carrier.carrierOperation) {
+    parts.push(`Operates ${safeStr(carrier.carrierOperation).toLowerCase()}.`);
+  }
+
+  if (carrier.cargoCarried && carrier.cargoCarried.length > 0) {
+    parts.push(`Hauls: ${carrier.cargoCarried.join(', ')}.`);
+  }
+
+  if (carrier.safetyRating) {
+    parts.push(`Safety rating: ${safetyRatingLabel(carrier.safetyRating)}.`);
+  }
+
+  const vNatAvg = parseFloat(carrier.vehicleOosRateNationalAverage || '20.72');
+  if (carrier.vehicleOosRate !== undefined) {
+    const comparison = carrier.vehicleOosRate > vNatAvg ? 'above' : 'below';
+    parts.push(`Vehicle OOS rate: ${carrier.vehicleOosRate.toFixed(1)}% (${comparison} ${vNatAvg}% national average).`);
   }
 
   if (carrier.basicScores && carrier.basicScores.length > 0) {
@@ -91,13 +192,104 @@ function buildAISummary(carrier: FmcsaCarrierRecord): string {
     if (top) {
       parts.push(`Highest BASIC: ${top.basicName} at ${top.percentile}th percentile.`);
     }
+    const exceeding = carrier.basicScores.filter((b) => b.exceedThreshold);
+    if (exceeding.length === 0) {
+      parts.push('No BASIC categories exceed intervention thresholds.');
+    }
   }
 
-  if (carrier.vehicleOosRate) {
-    parts.push(`Vehicle OOS rate: ${carrier.vehicleOosRate.toFixed(1)}%.`);
+  if (carrier.crashTotal !== undefined && carrier.crashTotal > 0) {
+    parts.push(`${carrier.crashTotal} crash(es) in 24 months.`);
+  } else if (carrier.crashTotal === 0) {
+    parts.push('Zero crashes in 24-month window.');
   }
 
   return parts.join(' ');
+}
+
+function buildFixPlan(carrier: FmcsaCarrierRecord): CarrierBrief['fixPlan'] {
+  const items: CarrierBrief['fixPlan'] = [];
+  const vNatAvg = parseFloat(carrier.vehicleOosRateNationalAverage || '20.72');
+  const dNatAvg = parseFloat(carrier.driverOosRateNationalAverage || '5.51');
+
+  // BASIC-specific items
+  if (carrier.basicScores?.length) {
+    const exceeding = carrier.basicScores.filter((b) => b.exceedThreshold);
+    if (exceeding.length > 0) {
+      for (const b of exceeding.slice(0, 2)) {
+        items.push({
+          title: `Address ${b.basicName} BASIC (${b.percentile}th %ile)`,
+          description: `This category exceeds the ${b.threshold}% intervention threshold. Focus remediation efforts on reducing violations in this area.`,
+          impact: 'High',
+          effort: 'Medium',
+          expectedEffect: `Reduce ${b.basicName} percentile below ${b.threshold}% threshold`,
+        });
+      }
+    } else {
+      items.push({
+        title: 'Maintain current BASIC compliance',
+        description: 'No BASIC categories currently exceed intervention thresholds. Continue current safety programs.',
+        impact: 'High',
+        effort: 'Low',
+        expectedEffect: 'Sustain below-threshold BASIC performance',
+      });
+    }
+  }
+
+  // Vehicle OOS
+  if (carrier.vehicleOosRate !== undefined && carrier.vehicleOosRate > vNatAvg) {
+    items.push({
+      title: 'Reduce vehicle out-of-service rate',
+      description: `Vehicle OOS rate of ${carrier.vehicleOosRate.toFixed(1)}% exceeds the ${vNatAvg}% national average. Strengthen pre-trip inspections, focusing on brake systems, lighting, and tire conditions.`,
+      impact: 'High',
+      effort: 'Medium',
+      expectedEffect: `Bring vehicle OOS rate below ${vNatAvg}% national average`,
+    });
+  }
+
+  // Driver OOS
+  if (carrier.driverOosRate !== undefined && carrier.driverOosRate > dNatAvg) {
+    items.push({
+      title: 'Improve driver compliance',
+      description: `Driver OOS rate of ${carrier.driverOosRate.toFixed(1)}% exceeds the ${dNatAvg}% national average. Review HOS documentation, medical certificate currency, and CDL requirements.`,
+      impact: 'High',
+      effort: 'Medium',
+      expectedEffect: `Bring driver OOS rate below ${dNatAvg}% national average`,
+    });
+  }
+
+  // Crash history
+  if (carrier.crashTotal && carrier.crashTotal > 3) {
+    items.push({
+      title: 'Crash reduction program',
+      description: `${carrier.crashTotal} crashes in 24 months. Implement defensive driving training, telematics-based coaching, and post-incident root cause analysis.`,
+      impact: 'High',
+      effort: 'High',
+      expectedEffect: 'Reduce crash frequency and severity indicators',
+    });
+  }
+
+  // Always add monitoring
+  items.push({
+    title: 'Add to monitoring watchlist',
+    description: 'Enable ongoing monitoring to track changes in BASIC percentiles and OOS rates over time.',
+    impact: 'High',
+    effort: 'Low',
+    expectedEffect: 'Detect deterioration before it triggers enforcement action',
+  });
+
+  // MCS-150 freshness
+  if (!carrier.mcs150FormDate) {
+    items.push({
+      title: 'Update MCS-150 filing',
+      description: 'MCS-150 form date is missing or unknown. Ensure biennial update is current to avoid administrative compliance issues.',
+      impact: 'Medium',
+      effort: 'Low',
+      expectedEffect: 'Resolve administrative freshness gap',
+    });
+  }
+
+  return items;
 }
 
 export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrief {
@@ -145,14 +337,16 @@ export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrie
 
   const brief: CarrierBrief = {
     id: `fmcsa-${carrier.dotNumber}`,
-    carrierName: carrier.legalName || carrier.dbaName || `USDOT ${carrier.dotNumber}`,
+    carrierName: safeStr(carrier.legalName) || safeStr(carrier.dbaName) || `USDOT ${carrier.dotNumber}`,
     usdot: String(carrier.dotNumber),
-    mc: carrier.mcNumber || 'N/A',
-    status: carrier.allowedToOperate === 'Y' ? 'Active' : 'Not Authorized',
-    operationType: carrier.carrierOperation || carrier.operationClassification || 'Interstate',
-    powerUnits: carrier.totalPowerUnits ?? 0,
-    drivers: carrier.totalDrivers ?? 0,
-    mcs150Updated: formatMcs150Date(carrier.mcs150FormDate),
+    mc: safeStr(carrier.mcNumber, 'N/A'),
+    status: safeStr(carrier.allowedToOperate) === 'Y' ? 'Active' : 'Not Authorized',
+    operationType: carrier.operationClasses?.length
+      ? carrier.operationClasses.join(' / ')
+      : safeStr(carrier.carrierOperation) || safeStr(carrier.operationClassification) || 'Interstate',
+    powerUnits: typeof carrier.totalPowerUnits === 'number' ? carrier.totalPowerUnits : 0,
+    drivers: typeof carrier.totalDrivers === 'number' ? carrier.totalDrivers : 0,
+    mcs150Updated: formatMcs150Date(safeStr(carrier.mcs150FormDate)),
     dataFreshness: 'Live FMCSA API',
     overallRisk,
     trend: 'Stable' as TrendDirection,
@@ -188,24 +382,7 @@ export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrie
       { label: 'Data Source', direction: 'stable', detail: 'Live FMCSA API snapshot' },
     ],
     scoreContributions,
-    fixPlan: [
-      {
-        title: 'Review BASIC categories above threshold',
-        description: carrier.basicScores?.filter((b) => b.exceedThreshold).length
-          ? `Focus on: ${carrier.basicScores.filter((b) => b.exceedThreshold).map((b) => b.basicName).join(', ')}`
-          : 'No categories currently exceed intervention thresholds.',
-        impact: 'High',
-        effort: 'Medium',
-        expectedEffect: 'Reduce regulatory exposure and improve safety metrics',
-      },
-      {
-        title: 'Add to monitoring watchlist',
-        description: 'Enable ongoing monitoring to track changes in BASIC percentiles and OOS rates over time.',
-        impact: 'High',
-        effort: 'Low',
-        expectedEffect: 'Detect deterioration before it triggers enforcement action',
-      },
-    ],
+    fixPlan: buildFixPlan(carrier),
     trendData: {
       vehicleOOS: Array.from({ length: 12 }, (_, i) => ({
         month: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
@@ -229,9 +406,13 @@ export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrie
     ],
     dataCoverage: [
       'Carrier identity, status, fleet size (FMCSA API)',
-      'OOS rates: vehicle, driver, hazmat (FMCSA API)',
-      'Crash totals (FMCSA API)',
-      carrier.basicScores?.length ? 'BASIC percentile scores (FMCSA API)' : 'BASIC scores not available for this carrier',
+      'OOS rates: vehicle, driver, hazmat with national averages (FMCSA API)',
+      `Crash totals with breakdown: ${carrier.crashTotal ?? 0} total, ${carrier.fatalCrash ?? 0} fatal, ${carrier.injCrash ?? 0} injury, ${carrier.towawayCrash ?? 0} towaway (FMCSA API)`,
+      carrier.basicScores?.length ? `BASIC percentile scores: ${carrier.basicScores.length} categories (FMCSA API)` : 'BASIC scores not available for this carrier',
+      carrier.cargoCarried?.length ? `Cargo carried: ${carrier.cargoCarried.join(', ')} (FMCSA API)` : 'Cargo carried data not available',
+      carrier.operationClasses?.length ? `Operation classification: ${carrier.operationClasses.join(', ')} (FMCSA API)` : 'Operation classification not available',
+      carrier.authorityDetails?.length ? `Authority: ${carrier.authorityDetails.map(a => `${a.type} (${a.status})`).join(', ')} (FMCSA API)` : 'Authority details not available',
+      carrier.safetyRating ? `Safety rating: ${safetyRatingLabel(carrier.safetyRating)} (FMCSA API)` : 'No safety rating on file',
     ],
   };
 

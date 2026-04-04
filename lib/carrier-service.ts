@@ -7,14 +7,28 @@ import { buildBriefFromFmcsaApi } from './fmcsa-brief-builder';
 
 const isDev = process.env.NODE_ENV === 'development';
 
+/** Carriers that appear in the dropdown but are fetched from the live FMCSA API at runtime */
+const LIVE_CARRIERS: CarrierListItem[] = [
+  {
+    id: 'live-862406',
+    carrierName: 'Johnsonville Trucking LLC',
+    usdot: '862406',
+    overallRisk: 'Low',
+    trend: 'Stable',
+    source: 'live',
+  },
+];
+
 export function getAllCarriers(): CarrierListItem[] {
-  return mockCarriers.map((carrier) => ({
+  const mockList = mockCarriers.map((carrier) => ({
     id: carrier.id,
     carrierName: carrier.carrierName,
     usdot: carrier.usdot,
     overallRisk: carrier.overallRisk,
     trend: carrier.trend,
+    source: 'mock' as const,
   }));
+  return [...mockList, ...LIVE_CARRIERS];
 }
 
 export async function getCarrierByUsdot(usdot: string): Promise<CarrierLookupResult> {

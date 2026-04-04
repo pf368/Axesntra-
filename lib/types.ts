@@ -112,6 +112,7 @@ export interface CarrierListItem {
   usdot: string;
   overallRisk: RiskLevel;
   trend: TrendDirection;
+  source?: 'mock' | 'live';
 }
 
 export interface CarrierTrends {

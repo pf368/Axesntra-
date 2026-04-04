@@ -45,17 +45,30 @@ export interface FmcsaCarrierRecord {
   addDate?: string;
   // Inspections / safety
   crashTotal?: number;
+  fatalCrash?: number;
+  injCrash?: number;
+  towawayCrash?: number;
   driverInsp?: number;
   driverOosInsp?: number;
   driverOosRate?: number;
+  driverOosRateNationalAverage?: string;
   vehicleInsp?: number;
   vehicleOosInsp?: number;
   vehicleOosRate?: number;
+  vehicleOosRateNationalAverage?: string;
   hazmatInsp?: number;
   hazmatOosInsp?: number;
   hazmatOosRate?: number;
+  hazmatOosRateNationalAverage?: string;
+  // Insurance
+  bipdInsuranceOnFile?: string;
+  bipdRequiredAmount?: string;
   // BASIC scores (from /basics endpoint)
   basicScores?: FmcsaBasicScore[];
+  // Sub-endpoint data
+  cargoCarried?: string[];
+  operationClasses?: string[];
+  authorityDetails?: { type: string; status: string }[];
 }
 
 export interface FmcsaBasicScore {
@@ -114,62 +127,129 @@ export async function fetchCarrierFromFmcsaApi(usdot: string): Promise<FmcsaApiR
       return { success: false, error: 'No carrier data in API response' };
     }
 
+    // Helper: FMCSA API sometimes returns objects instead of primitives
+    const str = (val: unknown): string | undefined => {
+      if (val == null) return undefined;
+      if (typeof val === 'string') return val;
+      if (typeof val === 'object') {
+        const obj = val as Record<string, unknown>;
+        // Try common desc/code patterns from FMCSA API
+        return (obj.desc || obj.description || obj.code || obj.name || Object.values(obj).find(v => typeof v === 'string') || JSON.stringify(val)) as string;
+      }
+      return String(val);
+    };
+
     const carrier: FmcsaCarrierRecord = {
       dotNumber: record.dotNumber,
-      legalName: record.legalName || '',
-      dbaName: record.dbaName,
-      mcNumber: record.mcNumber,
-      allowedToOperate: record.allowedToOperate || 'N',
-      statusCode: record.statusCode || '',
-      safetyRating: record.safetyRating,
-      safetyRatingDate: record.safetyRatingDate,
-      carrierOperation: record.carrierOperation,
-      operationClassification: record.operationClassification,
-      totalPowerUnits: record.totalPowerUnits,
-      totalDrivers: record.totalDrivers,
-      phyStreet: record.phyStreet,
-      phyCity: record.phyCity,
-      phyState: record.phyState,
-      phyZipcode: record.phyZipcode,
-      phyCountry: record.phyCountry,
-      mcs150FormDate: record.mcs150FormDate,
-      addDate: record.addDate,
+      legalName: str(record.legalName) || '',
+      dbaName: str(record.dbaName),
+      mcNumber: str(record.mcNumber),
+      allowedToOperate: str(record.allowedToOperate) || 'N',
+      statusCode: str(record.statusCode) || '',
+      safetyRating: str(record.safetyRating),
+      safetyRatingDate: str(record.safetyRatingDate),
+      carrierOperation: typeof record.carrierOperation === 'string'
+        ? record.carrierOperation
+        : record.carrierOperation?.carrierOperationDesc || record.carrierOperation?.carrierOperationCode || undefined,
+      operationClassification: typeof record.operationClassification === 'string'
+        ? record.operationClassification
+        : record.operationClassification?.operationClassificationDesc || record.operationClassification?.operationClassificationCode || undefined,
+      totalPowerUnits: typeof record.totalPowerUnits === 'number' ? record.totalPowerUnits : parseInt(record.totalPowerUnits) || undefined,
+      totalDrivers: typeof record.totalDrivers === 'number' ? record.totalDrivers : parseInt(record.totalDrivers) || undefined,
+      phyStreet: str(record.phyStreet),
+      phyCity: str(record.phyCity),
+      phyState: str(record.phyState),
+      phyZipcode: str(record.phyZipcode),
+      phyCountry: str(record.phyCountry),
+      mcs150FormDate: str(record.mcs150FormDate),
+      addDate: str(record.addDate),
       crashTotal: record.crashTotal,
+      fatalCrash: record.fatalCrash,
+      injCrash: record.injCrash,
+      towawayCrash: record.towawayCrash,
       driverInsp: record.driverInsp,
       driverOosInsp: record.driverOosInsp,
       driverOosRate: record.driverOosRate,
+      driverOosRateNationalAverage: str(record.driverOosRateNationalAverage),
       vehicleInsp: record.vehicleInsp,
       vehicleOosInsp: record.vehicleOosInsp,
       vehicleOosRate: record.vehicleOosRate,
+      vehicleOosRateNationalAverage: str(record.vehicleOosRateNationalAverage),
       hazmatInsp: record.hazmatInsp,
       hazmatOosInsp: record.hazmatOosInsp,
       hazmatOosRate: record.hazmatOosRate,
+      hazmatOosRateNationalAverage: str(record.hazmatOosRateNationalAverage),
+      bipdInsuranceOnFile: str(record.bipdInsuranceOnFile),
+      bipdRequiredAmount: str(record.bipdRequiredAmount),
     };
 
     if (isDev) console.log('[FMCSA API] Success:', carrier.legalName);
 
-    // Try to fetch BASIC scores
-    try {
-      const basicsUrl = `${FMCSA_API_BASE}/carriers/${cleanUsdot}/basics?webKey=${apiKey}`;
-      const basicsResp = await fetch(basicsUrl, {
-        headers: { Accept: 'application/json' },
-      });
-      if (basicsResp.ok) {
-        const basicsData = await basicsResp.json();
-        const basicsContent = basicsData?.content;
-        if (Array.isArray(basicsContent)) {
-          carrier.basicScores = basicsContent.map((b: Record<string, unknown>) => ({
-            basicName: (b.basicsName || b.basicName || '') as string,
-            measure: (b.basicsValue || b.measure || 0) as number,
-            percentile: (b.basicsPercentile || b.percentile || 0) as number,
-            threshold: (b.basicsThreshold || b.threshold || 0) as number,
-            exceedThreshold: ((b.basicsExceedThreshold || b.exceedThreshold) === 'Y' || (b.basicsExceedThreshold || b.exceedThreshold) === true) as boolean,
-          }));
-          if (isDev) console.log('[FMCSA API] BASIC scores loaded:', carrier.basicScores.length);
-        }
+    // Fetch all sub-endpoints in parallel (all non-fatal)
+    const subFetcher = async (path: string) => {
+      try {
+        const resp = await fetch(`${FMCSA_API_BASE}/carriers/${cleanUsdot}/${path}?webKey=${apiKey}`, {
+          headers: { Accept: 'application/json' },
+        });
+        if (resp.ok) return await resp.json();
+      } catch { /* non-fatal */ }
+      return null;
+    };
+
+    const [basicsData, cargoData, opsData, authData] = await Promise.all([
+      subFetcher('basics'),
+      subFetcher('cargo-carried'),
+      subFetcher('operation-classification'),
+      subFetcher('authority'),
+    ]);
+
+    // BASIC scores
+    if (basicsData) {
+      const basicsContent = basicsData?.content;
+      if (Array.isArray(basicsContent)) {
+        carrier.basicScores = basicsContent.map((b: Record<string, unknown>) => ({
+          basicName: (b.basicsName || b.basicName || '') as string,
+          measure: (b.basicsValue || b.measure || 0) as number,
+          percentile: (b.basicsPercentile || b.percentile || 0) as number,
+          threshold: (b.basicsThreshold || b.threshold || 0) as number,
+          exceedThreshold: ((b.basicsExceedThreshold || b.exceedThreshold) === 'Y' || (b.basicsExceedThreshold || b.exceedThreshold) === true) as boolean,
+        }));
+        if (isDev) console.log('[FMCSA API] BASIC scores loaded:', carrier.basicScores.length);
       }
-    } catch {
-      if (isDev) console.log('[FMCSA API] BASIC scores fetch failed (non-fatal)');
+    }
+
+    // Cargo carried
+    if (cargoData) {
+      const cargoContent = cargoData?.content;
+      if (Array.isArray(cargoContent)) {
+        carrier.cargoCarried = cargoContent
+          .map((c: Record<string, unknown>) => str(c.cargoClassDesc) || str(c.cargoDesc) || str(c.description) || '')
+          .filter((s: string) => s.length > 0);
+        if (isDev) console.log('[FMCSA API] Cargo carried loaded:', carrier.cargoCarried.length);
+      }
+    }
+
+    // Operation classification
+    if (opsData) {
+      const opsContent = opsData?.content;
+      if (Array.isArray(opsContent)) {
+        carrier.operationClasses = opsContent
+          .map((o: Record<string, unknown>) => str(o.operationClassDesc) || str(o.operationClassificationDesc) || str(o.description) || '')
+          .filter((s: string) => s.length > 0);
+        if (isDev) console.log('[FMCSA API] Operation classes loaded:', carrier.operationClasses.length);
+      }
+    }
+
+    // Authority
+    if (authData) {
+      const authContent = authData?.content;
+      if (Array.isArray(authContent)) {
+        carrier.authorityDetails = authContent.map((a: Record<string, unknown>) => ({
+          type: str(a.authorityType) || str(a.authTypDesc) || 'Unknown',
+          status: str(a.authorityStatus) || str(a.authStatusDesc) || 'Unknown',
+        }));
+        if (isDev) console.log('[FMCSA API] Authority details loaded:', carrier.authorityDetails.length);
+      }
     }
 
     return { success: true, carrier };
