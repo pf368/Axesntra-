@@ -1187,3 +1187,138 @@ export function getFeaturedScenario(): ViolationScenario {
 export function getAllViolationScenarios(): ViolationScenario[] {
   return VIOLATION_SCENARIOS;
 }
+
+/**
+ * Generates ViolationScenario objects from real inspection data.
+ * These can be merged with the static scenarios for live carrier reports.
+ */
+export function buildViolationScenariosFromInspections(
+  inspections: import('./types').InspectionWithViolations[]
+): ViolationScenario[] {
+  // Aggregate violations by code
+  const violMap = new Map<string, {
+    code: string;
+    description: string;
+    count: number;
+    oosCount: number;
+    dates: string[];
+    states: string[];
+  }>();
+
+  for (const insp of inspections) {
+    for (const v of insp.violations) {
+      const existing = violMap.get(v.code);
+      if (existing) {
+        existing.count++;
+        if (v.oos) existing.oosCount++;
+        if (insp.inspectionDate && !existing.dates.includes(insp.inspectionDate)) {
+          existing.dates.push(insp.inspectionDate);
+        }
+        if (insp.state && !existing.states.includes(insp.state)) {
+          existing.states.push(insp.state);
+        }
+      } else {
+        violMap.set(v.code, {
+          code: v.code,
+          description: v.description,
+          count: 1,
+          oosCount: v.oos ? 1 : 0,
+          dates: insp.inspectionDate ? [insp.inspectionDate] : [],
+          states: insp.state ? [insp.state] : [],
+        });
+      }
+    }
+  }
+
+  // Sort by frequency, take top 5
+  const topViolations = Array.from(violMap.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  return topViolations.map((v): ViolationScenario => {
+    const severity: 'OOS' | 'Non-OOS' = v.oosCount > 0 ? 'OOS' : 'Non-OOS';
+    const mostRecent = v.dates.sort().reverse()[0] || 'Unknown date';
+    const stateList = v.states.join(', ') || 'Unknown';
+
+    return {
+      id: `live-${v.code.replace(/[^a-zA-Z0-9]/g, '-')}`,
+      code: v.code,
+      title: v.description,
+      severity,
+      category: 'Vehicle Maintenance',
+      summary: `Found in ${v.count} inspection(s) over 24 months. ${v.oosCount > 0 ? `${v.oosCount} resulted in OOS. ` : ''}Most recent: ${mostRecent} in ${stateList}.`,
+      aiResponses: {
+        prevent: {
+          promptKey: 'prevent',
+          promptLabel: 'Ask AI: How do I prevent this?',
+          sections: [
+            {
+              id: 'what-it-means',
+              heading: 'What this violation means',
+              icon: 'info',
+              content: `CFR ${v.code} — ${v.description}. This violation was cited ${v.count} time(s) across inspections in ${stateList}.`,
+            },
+            {
+              id: 'frequency',
+              heading: 'Occurrence pattern',
+              icon: 'search',
+              content: [
+                `Found in ${v.count} inspection(s) over the 24-month SMS window.`,
+                v.oosCount > 0
+                  ? `${v.oosCount} of these resulted in out-of-service orders, meaning the vehicle was removed from service until the defect was corrected.`
+                  : 'None of these occurrences resulted in out-of-service orders.',
+                `Most recent occurrence: ${mostRecent}.`,
+              ],
+            },
+            {
+              id: 'prevention',
+              heading: 'How to prevent this',
+              icon: 'shield',
+              content: [
+                `Add CFR ${v.code} to your pre-trip inspection checklist as a specific check item.`,
+                'Ensure drivers are trained to identify and document this type of defect before departure.',
+                'Implement a defect closeout tracking system to verify repairs are completed.',
+                v.oosCount > 0
+                  ? 'Given OOS history, consider adding a gate-check verification before dispatch.'
+                  : 'Continue monitoring for any increase in frequency.',
+              ],
+            },
+          ],
+          immediateActions: [
+            `Review all current equipment for ${v.code} compliance`,
+            'Brief drivers on this specific violation during next safety meeting',
+            'Document corrective actions and track closure',
+          ],
+        },
+        ...(v.oosCount > 0
+          ? {
+              'why-oos': {
+                promptKey: 'why-oos',
+                promptLabel: 'Ask AI: Why was this OOS?',
+                sections: [
+                  {
+                    id: 'oos-explanation',
+                    heading: 'Why this violation triggers Out-of-Service',
+                    icon: 'alert',
+                    content: `Violations under CFR ${v.code} can result in out-of-service orders when the defect is severe enough to present an imminent hazard. The vehicle must be repaired before it can return to service. This carrier had ${v.oosCount} OOS event(s) for this violation type.`,
+                    highlighted: true,
+                    highlightColor: 'red',
+                  },
+                  {
+                    id: 'impact',
+                    heading: 'Impact on carrier record',
+                    icon: 'info',
+                    content: [
+                      'OOS violations receive a +2 severity weight bonus in BASIC calculations.',
+                      'They contribute more heavily to the Vehicle Maintenance BASIC percentile.',
+                      'Multiple OOS events can push a carrier above intervention thresholds.',
+                    ],
+                  },
+                ],
+              },
+            }
+          : {}),
+      },
+    };
+  });
+}

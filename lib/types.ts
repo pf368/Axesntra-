@@ -115,6 +115,40 @@ export interface CarrierListItem {
   source?: 'mock' | 'live';
 }
 
+// ── Inspection / Violation Types ──
+
+export interface InspectionRecord {
+  reportNumber: string;
+  inspectionDate: string;
+  state: string;
+  violationCount: number;
+  totalSeverityWeight: number;
+  oos: boolean;
+  inspectionId?: string;
+}
+
+export interface ViolationDetail {
+  code: string;
+  description: string;
+  severityWeight: number;
+  timeWeight: number;
+  oos: boolean;
+  basicCategory: string;
+}
+
+export interface InspectionWithViolations extends InspectionRecord {
+  violations: ViolationDetail[];
+}
+
+export interface SMSInspectionResult {
+  success: boolean;
+  inspections?: InspectionRecord[];
+  inspectionDetails?: InspectionWithViolations[];
+  totalCount?: number;
+  basicPercentile?: number;
+  error?: string;
+}
+
 export interface CarrierTrends {
   usdot: string;
   trendData: TrendData;
