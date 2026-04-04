@@ -275,6 +275,12 @@ export default function SampleReportPage() {
                       <div className="flex items-center gap-2">
                         <span>{carrier.carrierName}</span>
                         <span className="text-xs text-slate-500">({carrier.overallRisk})</span>
+                        {carrier.source === 'live' && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400 border border-emerald-500/30">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Live
+                          </span>
+                        )}
                       </div>
                     </SelectItem>
                   ))}
@@ -286,7 +292,15 @@ export default function SampleReportPage() {
           <p className="mb-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
             Carrier Risk Brief
           </p>
-          <h1 className="mb-2 text-3xl font-bold">{data.carrierName}</h1>
+          <div className="mb-2 flex items-center gap-3">
+            <h1 className="text-3xl font-bold">{data.carrierName}</h1>
+            {data.source === 'public-live' && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-1 text-xs font-semibold text-emerald-300 border border-emerald-500/30">
+                <Database className="h-3.5 w-3.5" />
+                Live FMCSA API
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-400">
             USDOT {data.usdot} | MC {data.mc}
           </p>
