@@ -114,26 +114,42 @@ export async function fetchCarrierFromFmcsaApi(usdot: string): Promise<FmcsaApiR
       return { success: false, error: 'No carrier data in API response' };
     }
 
+    // Helper: FMCSA API sometimes returns objects instead of primitives
+    const str = (val: unknown): string | undefined => {
+      if (val == null) return undefined;
+      if (typeof val === 'string') return val;
+      if (typeof val === 'object') {
+        const obj = val as Record<string, unknown>;
+        // Try common desc/code patterns from FMCSA API
+        return (obj.desc || obj.description || obj.code || obj.name || Object.values(obj).find(v => typeof v === 'string') || JSON.stringify(val)) as string;
+      }
+      return String(val);
+    };
+
     const carrier: FmcsaCarrierRecord = {
       dotNumber: record.dotNumber,
-      legalName: record.legalName || '',
-      dbaName: record.dbaName,
-      mcNumber: record.mcNumber,
-      allowedToOperate: record.allowedToOperate || 'N',
-      statusCode: record.statusCode || '',
-      safetyRating: record.safetyRating,
-      safetyRatingDate: record.safetyRatingDate,
-      carrierOperation: record.carrierOperation,
-      operationClassification: record.operationClassification,
-      totalPowerUnits: record.totalPowerUnits,
-      totalDrivers: record.totalDrivers,
-      phyStreet: record.phyStreet,
-      phyCity: record.phyCity,
-      phyState: record.phyState,
-      phyZipcode: record.phyZipcode,
-      phyCountry: record.phyCountry,
-      mcs150FormDate: record.mcs150FormDate,
-      addDate: record.addDate,
+      legalName: str(record.legalName) || '',
+      dbaName: str(record.dbaName),
+      mcNumber: str(record.mcNumber),
+      allowedToOperate: str(record.allowedToOperate) || 'N',
+      statusCode: str(record.statusCode) || '',
+      safetyRating: str(record.safetyRating),
+      safetyRatingDate: str(record.safetyRatingDate),
+      carrierOperation: typeof record.carrierOperation === 'string'
+        ? record.carrierOperation
+        : record.carrierOperation?.carrierOperationDesc || record.carrierOperation?.carrierOperationCode || undefined,
+      operationClassification: typeof record.operationClassification === 'string'
+        ? record.operationClassification
+        : record.operationClassification?.operationClassificationDesc || record.operationClassification?.operationClassificationCode || undefined,
+      totalPowerUnits: typeof record.totalPowerUnits === 'number' ? record.totalPowerUnits : parseInt(record.totalPowerUnits) || undefined,
+      totalDrivers: typeof record.totalDrivers === 'number' ? record.totalDrivers : parseInt(record.totalDrivers) || undefined,
+      phyStreet: str(record.phyStreet),
+      phyCity: str(record.phyCity),
+      phyState: str(record.phyState),
+      phyZipcode: str(record.phyZipcode),
+      phyCountry: str(record.phyCountry),
+      mcs150FormDate: str(record.mcs150FormDate),
+      addDate: str(record.addDate),
       crashTotal: record.crashTotal,
       driverInsp: record.driverInsp,
       driverOosInsp: record.driverOosInsp,
