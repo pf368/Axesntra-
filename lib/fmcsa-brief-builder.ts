@@ -3,7 +3,7 @@
  * for display alongside mock/scraped data.
  */
 
-import { CarrierBrief, RiskLevel, TrendDirection } from './types';
+import { CarrierBrief, RiskLevel, TrendDirection, InspectionWithViolations, ViolationDetail } from './types';
 import { FmcsaCarrierRecord } from './fmcsa-api-service';
 
 /**
@@ -292,6 +292,201 @@ function buildFixPlan(carrier: FmcsaCarrierRecord): CarrierBrief['fixPlan'] {
   return items;
 }
 
+// ── Inspection-based enrichment helpers ──
+
+interface ViolationFrequency {
+  code: string;
+  description: string;
+  count: number;
+  oosCount: number;
+  totalSeverity: number;
+}
+
+function analyzeViolations(inspections: InspectionWithViolations[]): {
+  frequencies: ViolationFrequency[];
+  totalInspections: number;
+  totalViolations: number;
+  oosInspections: number;
+  avgSeverity: number;
+  recentInspections: InspectionWithViolations[];
+} {
+  const freqMap = new Map<string, ViolationFrequency>();
+  let totalViolations = 0;
+  let totalSeverity = 0;
+  const oosInspections = inspections.filter((i) => i.oos).length;
+
+  for (const insp of inspections) {
+    for (const v of insp.violations) {
+      totalViolations++;
+      totalSeverity += v.severityWeight;
+      const existing = freqMap.get(v.code);
+      if (existing) {
+        existing.count++;
+        if (v.oos) existing.oosCount++;
+        existing.totalSeverity += v.severityWeight;
+      } else {
+        freqMap.set(v.code, {
+          code: v.code,
+          description: v.description,
+          count: 1,
+          oosCount: v.oos ? 1 : 0,
+          totalSeverity: v.severityWeight,
+        });
+      }
+    }
+  }
+
+  const frequencies = Array.from(freqMap.values()).sort((a, b) => b.count - a.count);
+
+  // Recent = last 6 months (approximate)
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const recentInspections = inspections.filter((i) => {
+    if (!i.inspectionDate) return false;
+    const d = new Date(i.inspectionDate);
+    return !isNaN(d.getTime()) && d >= sixMonthsAgo;
+  });
+
+  return {
+    frequencies,
+    totalInspections: inspections.length,
+    totalViolations,
+    oosInspections,
+    avgSeverity: totalViolations > 0 ? totalSeverity / totalViolations : 0,
+    recentInspections,
+  };
+}
+
+function buildInspectionRiskDrivers(
+  inspections: InspectionWithViolations[],
+  existingDrivers: CarrierBrief['riskDriverDetails']
+): { riskDriverDetails: CarrierBrief['riskDriverDetails']; topRiskDrivers: string[] } {
+  const analysis = analyzeViolations(inspections);
+  if (analysis.totalViolations === 0) {
+    return { riskDriverDetails: existingDrivers, topRiskDrivers: existingDrivers.map((d) => d.title) };
+  }
+
+  const riskDriverDetails: CarrierBrief['riskDriverDetails'] = [];
+  const topRiskDrivers: string[] = [];
+
+  // Top violation categories become risk drivers
+  const topViolations = analysis.frequencies.slice(0, 3);
+  for (const v of topViolations) {
+    const oosNote = v.oosCount > 0 ? ` ${v.oosCount} resulted in out-of-service orders.` : '';
+    const severity = v.oosCount > 0 ? 'high' as const : v.count >= 3 ? 'medium' as const : 'low' as const;
+
+    topRiskDrivers.push(`${v.description} (${v.code})`);
+    riskDriverDetails.push({
+      title: `${v.description} (${v.code})`,
+      description: `Found in ${v.count} inspection(s) over 24 months.${oosNote} Average severity weight: ${(v.totalSeverity / v.count).toFixed(1)}.`,
+      severity,
+    });
+  }
+
+  // Add overall inspection summary as a driver if we have enough data
+  if (analysis.oosInspections > 0 && riskDriverDetails.length < 3) {
+    riskDriverDetails.push({
+      title: 'Out-of-Service Inspection History',
+      description: `${analysis.oosInspections} of ${analysis.totalInspections} inspections resulted in out-of-service orders. Average violation severity: ${analysis.avgSeverity.toFixed(1)}.`,
+      severity: analysis.oosInspections >= 3 ? 'high' : 'medium',
+    });
+    topRiskDrivers.push('Out-of-Service inspection history');
+  }
+
+  // Merge with existing BASIC-based drivers if we have fewer than 3
+  if (riskDriverDetails.length < 3) {
+    for (const existing of existingDrivers) {
+      if (riskDriverDetails.length >= 3) break;
+      if (!riskDriverDetails.some((d) => d.title === existing.title)) {
+        riskDriverDetails.push(existing);
+        topRiskDrivers.push(existing.title);
+      }
+    }
+  }
+
+  return { riskDriverDetails, topRiskDrivers };
+}
+
+function buildInspectionWhatChanged(
+  inspections: InspectionWithViolations[]
+): CarrierBrief['whatChangedItems'] {
+  const analysis = analyzeViolations(inspections);
+  const items: CarrierBrief['whatChangedItems'] = [];
+
+  // Recent vs older inspection comparison
+  const olderInspections = inspections.filter((i) => {
+    if (!i.inspectionDate) return false;
+    const d = new Date(i.inspectionDate);
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    return !isNaN(d.getTime()) && d < sixMonthsAgo;
+  });
+
+  const recentCount = analysis.recentInspections.length;
+  const olderCount = olderInspections.length;
+  const recentOOS = analysis.recentInspections.filter((i) => i.oos).length;
+
+  items.push({
+    label: 'Recent Inspections',
+    direction: recentCount > olderCount ? 'up' : recentCount < olderCount ? 'down' : 'stable',
+    detail: `${recentCount} in last 6 months${olderCount > 0 ? ` vs ${olderCount} in prior period` : ''}`,
+  });
+
+  items.push({
+    label: 'OOS Events',
+    direction: recentOOS > 0 ? 'up' : 'stable',
+    detail: recentOOS > 0 ? `${recentOOS} OOS in last 6 months` : 'No OOS events in last 6 months',
+  });
+
+  items.push({
+    label: 'Avg Violation Severity',
+    direction: analysis.avgSeverity > 6 ? 'up' : analysis.avgSeverity > 3 ? 'stable' : 'down',
+    detail: `${analysis.avgSeverity.toFixed(1)} avg severity weight across ${analysis.totalViolations} violations`,
+  });
+
+  // Most common violation trend
+  if (analysis.frequencies.length > 0) {
+    const top = analysis.frequencies[0];
+    items.push({
+      label: `Top Violation: ${top.code}`,
+      direction: top.oosCount > 0 ? 'up' : 'stable',
+      detail: `${top.description} — ${top.count} occurrence(s)`,
+    });
+  }
+
+  return items;
+}
+
+function enrichFixPlanWithInspections(
+  basePlan: CarrierBrief['fixPlan'],
+  inspections: InspectionWithViolations[]
+): CarrierBrief['fixPlan'] {
+  const analysis = analyzeViolations(inspections);
+  if (analysis.totalViolations === 0) return basePlan;
+
+  const items: CarrierBrief['fixPlan'] = [];
+
+  // Generate violation-specific fix items for top violations
+  for (const v of analysis.frequencies.slice(0, 3)) {
+    items.push({
+      title: `Address ${v.code} violations`,
+      description: `${v.description} — found in ${v.count} inspection(s).${v.oosCount > 0 ? ` ${v.oosCount} resulted in OOS.` : ''} Focus pre-trip and maintenance protocols on this area.`,
+      impact: v.oosCount > 0 ? 'High' : 'Medium',
+      effort: 'Medium',
+      expectedEffect: `Reduce ${v.code} violations and associated severity weight`,
+    });
+  }
+
+  // Append base plan items that aren't redundant
+  for (const item of basePlan) {
+    if (!items.some((i) => i.title === item.title)) {
+      items.push(item);
+    }
+  }
+
+  return items.slice(0, 6); // Cap at 6 items
+}
+
 export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrief {
   const overallRisk = deriveRiskLevel(carrier);
 
@@ -375,14 +570,22 @@ export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrie
       driver: chipFromOOS(carrier.driverOosRate),
       admin: carrier.mcs150FormDate ? 'Low' : 'Moderate',
     },
-    topRiskDrivers,
-    riskDriverDetails,
-    whatChanged: ['Live snapshot — historical change tracking requires ongoing monitoring'],
-    whatChangedItems: [
-      { label: 'Data Source', direction: 'stable', detail: 'Live FMCSA API snapshot' },
-    ],
+    topRiskDrivers: carrier.inspections?.length
+      ? buildInspectionRiskDrivers(carrier.inspections, riskDriverDetails).topRiskDrivers
+      : topRiskDrivers,
+    riskDriverDetails: carrier.inspections?.length
+      ? buildInspectionRiskDrivers(carrier.inspections, riskDriverDetails).riskDriverDetails
+      : riskDriverDetails,
+    whatChanged: carrier.inspections?.length
+      ? buildInspectionWhatChanged(carrier.inspections).map((i) => `${i.label}: ${i.detail}`)
+      : ['Live snapshot — historical change tracking requires ongoing monitoring'],
+    whatChangedItems: carrier.inspections?.length
+      ? buildInspectionWhatChanged(carrier.inspections)
+      : [{ label: 'Data Source', direction: 'stable' as const, detail: 'Live FMCSA API snapshot' }],
     scoreContributions,
-    fixPlan: buildFixPlan(carrier),
+    fixPlan: carrier.inspections?.length
+      ? enrichFixPlanWithInspections(buildFixPlan(carrier), carrier.inspections)
+      : buildFixPlan(carrier),
     trendData: {
       vehicleOOS: Array.from({ length: 12 }, (_, i) => ({
         month: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
@@ -402,7 +605,9 @@ export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrie
     sourceNotes: [
       'Data sourced from FMCSA QC Web API with authorized API key',
       'BASIC percentile scores reflect current FMCSA Safety Measurement System data',
-      'Trend analysis requires historical data points — this brief is a current snapshot',
+      ...(carrier.inspections?.length
+        ? [`Vehicle maintenance inspection history with violation details scraped from SMS (${carrier.inspections.length} inspections)`]
+        : ['Trend analysis requires historical data points — this brief is a current snapshot']),
     ],
     dataCoverage: [
       'Carrier identity, status, fleet size (FMCSA API)',
@@ -413,6 +618,7 @@ export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrie
       carrier.operationClasses?.length ? `Operation classification: ${carrier.operationClasses.join(', ')} (FMCSA API)` : 'Operation classification not available',
       carrier.authorityDetails?.length ? `Authority: ${carrier.authorityDetails.map(a => `${a.type} (${a.status})`).join(', ')} (FMCSA API)` : 'Authority details not available',
       carrier.safetyRating ? `Safety rating: ${safetyRatingLabel(carrier.safetyRating)} (FMCSA API)` : 'No safety rating on file',
+      carrier.inspections?.length ? `Inspection history: ${carrier.inspections.length} inspections with violation details (SMS scrape)` : 'Inspection details not available',
     ],
   };
 

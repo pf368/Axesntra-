@@ -2,7 +2,7 @@
  * FMCSA Web API Service
  *
  * Uses the official FMCSA QC API (mobile.fmcsa.dot.gov) with API key
- * to fetch carrier data. This is the structured JSON API — not HTML scraping.
+ * to fetch carrier data, supplemented by SMS page scraping for inspection details.
  *
  * API docs: https://mobile.fmcsa.dot.gov/QCDevsite/docs/qcApi
  */
@@ -69,6 +69,8 @@ export interface FmcsaCarrierRecord {
   cargoCarried?: string[];
   operationClasses?: string[];
   authorityDetails?: { type: string; status: string }[];
+  // Inspection data (from SMS scraping, not QC API)
+  inspections?: import('./types').InspectionWithViolations[];
 }
 
 export interface FmcsaBasicScore {
@@ -250,6 +252,18 @@ export async function fetchCarrierFromFmcsaApi(usdot: string): Promise<FmcsaApiR
         }));
         if (isDev) console.log('[FMCSA API] Authority details loaded:', carrier.authorityDetails.length);
       }
+    }
+
+    // Fetch SMS inspection history (non-fatal, separate from QC API)
+    try {
+      const { fetchFullInspectionHistory } = await import('./sms-inspection-service');
+      const inspResult = await fetchFullInspectionHistory(cleanUsdot);
+      if (inspResult.success && inspResult.inspectionDetails?.length) {
+        carrier.inspections = inspResult.inspectionDetails;
+        if (isDev) console.log('[FMCSA API] SMS inspections loaded:', carrier.inspections.length);
+      }
+    } catch {
+      if (isDev) console.log('[FMCSA API] SMS inspection scrape failed (non-fatal)');
     }
 
     return { success: true, carrier };

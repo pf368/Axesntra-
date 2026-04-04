@@ -15,14 +15,15 @@ import { AiGuidedPromptPanel } from '@/components/ai-guided-prompt-panel';
 import { AiComplianceProgramCards } from '@/components/ai-compliance-program-card';
 import { AiFixPlanDrawer } from '@/components/ai-fix-plan-drawer';
 import { ViolationScenarioCard } from '@/components/violation-scenario-card';
+import { InspectionHistoryTable } from '@/components/inspection-history-table';
 import { ReportAIPanel } from '@/components/report-ai-panel';
-import { CarrierBrief, CarrierListItem } from '@/lib/types';
+import { CarrierBrief, CarrierListItem, InspectionWithViolations } from '@/lib/types';
 import {
   getAiSafetyInsight,
   getIssueForRiskDriver,
   getCompliancePrograms,
 } from '@/lib/ai-advisory';
-import { getAllViolationScenarios } from '@/lib/violation-scenarios';
+import { getAllViolationScenarios, buildViolationScenariosFromInspections } from '@/lib/violation-scenarios';
 import {
   ChevronLeft,
   Wrench,
@@ -142,6 +143,9 @@ export default function SampleReportPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('medical-cert-cdl-mismatch');
+  const [inspections, setInspections] = useState<InspectionWithViolations[]>([]);
+  const [inspectionPercentile, setInspectionPercentile] = useState<number | undefined>();
+  const [inspectionsLoading, setInspectionsLoading] = useState(false);
 
   useEffect(() => {
     async function fetchCarrierList() {
@@ -183,6 +187,34 @@ export default function SampleReportPage() {
     }
     fetchCarrier();
   }, [selectedUsdot]);
+
+  // Fetch inspection data for live carriers after carrier data loads
+  useEffect(() => {
+    if (!data || data.source !== 'public-live') {
+      setInspections([]);
+      setInspectionPercentile(undefined);
+      return;
+    }
+
+    const usdot = data.usdot;
+
+    async function fetchInspections() {
+      setInspectionsLoading(true);
+      try {
+        const response = await fetch(`/api/carriers/${usdot}/inspections`);
+        const result = await response.json();
+        if (result.data) {
+          setInspections(result.data.inspectionDetails || []);
+          setInspectionPercentile(result.data.basicPercentile);
+        }
+      } catch {
+        // Non-fatal — inspection section just won't show
+      } finally {
+        setInspectionsLoading(false);
+      }
+    }
+    fetchInspections();
+  }, [data]);
 
   const handleRetry = () => {
     if (selectedUsdot) {
@@ -248,7 +280,19 @@ export default function SampleReportPage() {
 
   const aiInsight = getAiSafetyInsight(data);
   const compliancePrograms = getCompliancePrograms(data);
-  const violationScenarios = getAllViolationScenarios();
+  const staticScenarios = getAllViolationScenarios();
+  const dynamicScenarios = inspections.length > 0
+    ? buildViolationScenariosFromInspections(inspections)
+    : [];
+  const violationScenarios = data.source === 'public-live' && dynamicScenarios.length > 0
+    ? [...dynamicScenarios, ...staticScenarios]
+    : staticScenarios;
+
+  // Auto-select first violation scenario if current selection isn't in the list
+  const selectedExists = violationScenarios.some((s) => s.id === selectedScenarioId);
+  const effectiveScenarioId = selectedExists
+    ? selectedScenarioId
+    : violationScenarios[0]?.id || 'medical-cert-cdl-mismatch';
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -530,7 +574,7 @@ export default function SampleReportPage() {
                 key={scenario.id}
                 onClick={() => setSelectedScenarioId(scenario.id)}
                 className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
-                  selectedScenarioId === scenario.id
+                  effectiveScenarioId === scenario.id
                     ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
                     : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                 }`}
@@ -538,10 +582,10 @@ export default function SampleReportPage() {
                 <span
                   className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
                     scenario.severity === 'OOS'
-                      ? selectedScenarioId === scenario.id
+                      ? effectiveScenarioId === scenario.id
                         ? 'bg-red-500 text-white'
                         : 'bg-red-100 text-red-700'
-                      : selectedScenarioId === scenario.id
+                      : effectiveScenarioId === scenario.id
                         ? 'bg-amber-400 text-white'
                         : 'bg-amber-100 text-amber-700'
                   }`}
@@ -549,13 +593,18 @@ export default function SampleReportPage() {
                   {scenario.severity}
                 </span>
                 <span className="font-mono">{scenario.code}</span>
+                {scenario.id.startsWith('live-') && (
+                  <span className="rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-semibold uppercase text-emerald-700">
+                    Live
+                  </span>
+                )}
                 <span className="hidden sm:inline text-slate-500">— {scenario.category}</span>
               </button>
             ))}
           </div>
 
           {violationScenarios
-            .filter((s) => s.id === selectedScenarioId)
+            .filter((s) => s.id === effectiveScenarioId)
             .map((scenario) => (
               <ViolationScenarioCard key={scenario.id} scenario={scenario} />
             ))}
@@ -663,6 +712,43 @@ export default function SampleReportPage() {
             ))}
           </div>
         </div>
+
+        {/* Inspection History (live carriers only) */}
+        {data.source === 'public-live' && (
+          <div className="mb-8">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
+                  <ShieldAlert className="h-4 w-4 text-slate-700" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Vehicle Maintenance Inspection History
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    SMS inspection records — click a row to expand violation details
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {inspectionsLoading ? (
+              <Card className="p-8 text-center">
+                <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
+                <p className="mt-2 text-sm text-slate-500">Loading inspection history...</p>
+              </Card>
+            ) : inspections.length > 0 ? (
+              <InspectionHistoryTable
+                inspections={inspections}
+                basicPercentile={inspectionPercentile}
+              />
+            ) : (
+              <Card className="p-6 text-center text-sm text-slate-500">
+                No SMS inspection records available for this carrier.
+              </Card>
+            )}
+          </div>
+        )}
 
         {/* Performance Trends */}
         <div className="mb-8">
