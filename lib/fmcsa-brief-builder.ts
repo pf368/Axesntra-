@@ -487,6 +487,60 @@ function enrichFixPlanWithInspections(
   return items.slice(0, 6); // Cap at 6 items
 }
 
+/**
+ * Builds whatChanged items from QC API aggregate data when SMS inspection data is unavailable.
+ */
+function buildApiWhatChanged(carrier: FmcsaCarrierRecord): CarrierBrief['whatChangedItems'] {
+  const items: CarrierBrief['whatChangedItems'] = [];
+  const vNatAvg = parseFloat(carrier.vehicleOosRateNationalAverage || '20.72');
+  const dNatAvg = parseFloat(carrier.driverOosRateNationalAverage || '5.51');
+
+  if (carrier.vehicleOosRate !== undefined) {
+    items.push({
+      label: 'Vehicle OOS Rate',
+      direction: carrier.vehicleOosRate > vNatAvg ? 'up' : carrier.vehicleOosRate < vNatAvg * 0.5 ? 'down' : 'stable',
+      detail: `${carrier.vehicleOosRate.toFixed(1)}% vs ${vNatAvg}% national avg — ${carrier.vehicleInsp || 0} inspections, ${carrier.vehicleOosInsp || 0} OOS`,
+    });
+  }
+
+  if (carrier.driverOosRate !== undefined) {
+    items.push({
+      label: 'Driver OOS Rate',
+      direction: carrier.driverOosRate > dNatAvg ? 'up' : carrier.driverOosRate < dNatAvg * 0.5 ? 'down' : 'stable',
+      detail: `${carrier.driverOosRate.toFixed(1)}% vs ${dNatAvg}% national avg — ${carrier.driverInsp || 0} inspections, ${carrier.driverOosInsp || 0} OOS`,
+    });
+  }
+
+  if (carrier.crashTotal !== undefined) {
+    items.push({
+      label: 'Crash Frequency',
+      direction: carrier.crashTotal > 3 ? 'up' : carrier.crashTotal === 0 ? 'down' : 'stable',
+      detail: `${carrier.crashTotal} crash(es) in 24 months${carrier.fatalCrash ? ` (${carrier.fatalCrash} fatal)` : ''}`,
+    });
+  }
+
+  if (carrier.basicScores?.length) {
+    const exceeding = carrier.basicScores.filter((b) => b.exceedThreshold);
+    items.push({
+      label: 'BASIC Exposure',
+      direction: exceeding.length > 0 ? 'up' : 'down',
+      detail: exceeding.length > 0
+        ? `${exceeding.length} category(ies) above threshold: ${exceeding.map((b) => b.basicName).join(', ')}`
+        : `All ${carrier.basicScores.length} BASIC categories below intervention thresholds`,
+    });
+  }
+
+  if (items.length === 0) {
+    items.push({
+      label: 'Data Source',
+      direction: 'stable' as const,
+      detail: 'Live FMCSA API snapshot — limited aggregate data available',
+    });
+  }
+
+  return items;
+}
+
 export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrief {
   const overallRisk = deriveRiskLevel(carrier);
 
@@ -494,23 +548,99 @@ export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrie
   const riskDriverDetails: CarrierBrief['riskDriverDetails'] = [];
   const topRiskDrivers: string[] = [];
 
+  const vNatAvgBrief = parseFloat(carrier.vehicleOosRateNationalAverage || '20.72');
+  const dNatAvgBrief = parseFloat(carrier.driverOosRateNationalAverage || '5.51');
+
   if (carrier.basicScores && carrier.basicScores.length > 0) {
     const sorted = [...carrier.basicScores].sort((a, b) => b.percentile - a.percentile);
     for (const basic of sorted.slice(0, 3)) {
       topRiskDrivers.push(`${basic.basicName} (${basic.percentile}th %ile)`);
+
+      // Build a rich description using all available data
+      const descParts: string[] = [];
+      descParts.push(`${basic.percentile}th percentile (threshold: ${basic.threshold}%).`);
+      if (basic.exceedThreshold) {
+        descParts.push('EXCEEDS FMCSA intervention threshold — this carrier is prioritized for enforcement review.');
+      }
+
+      // Add context based on the BASIC category
+      const name = basic.basicName.toLowerCase();
+      if (name.includes('vehicle') || name.includes('maintenance')) {
+        if (carrier.vehicleInsp !== undefined) {
+          descParts.push(`${carrier.vehicleInsp} vehicle inspection(s) in 24 months with ${carrier.vehicleOosInsp || 0} out-of-service.`);
+        }
+        if (carrier.vehicleOosRate !== undefined) {
+          const cmp = carrier.vehicleOosRate > vNatAvgBrief ? 'above' : 'below';
+          descParts.push(`Vehicle OOS rate: ${carrier.vehicleOosRate.toFixed(1)}% (${cmp} ${vNatAvgBrief}% national average).`);
+        }
+      } else if (name.includes('driver')) {
+        if (carrier.driverInsp !== undefined) {
+          descParts.push(`${carrier.driverInsp} driver inspection(s) in 24 months with ${carrier.driverOosInsp || 0} out-of-service.`);
+        }
+        if (carrier.driverOosRate !== undefined) {
+          const cmp = carrier.driverOosRate > dNatAvgBrief ? 'above' : 'below';
+          descParts.push(`Driver OOS rate: ${carrier.driverOosRate.toFixed(1)}% (${cmp} ${dNatAvgBrief}% national average).`);
+        }
+      } else if (name.includes('crash')) {
+        if (carrier.crashTotal !== undefined) {
+          const parts: string[] = [];
+          if (carrier.fatalCrash) parts.push(`${carrier.fatalCrash} fatal`);
+          if (carrier.injCrash) parts.push(`${carrier.injCrash} injury`);
+          if (carrier.towawayCrash) parts.push(`${carrier.towawayCrash} towaway`);
+          descParts.push(`${carrier.crashTotal} crash(es) in 24 months${parts.length ? `: ${parts.join(', ')}` : ''}.`);
+        }
+      } else if (name.includes('hazmat') || name.includes('hm')) {
+        if (carrier.hazmatInsp !== undefined) {
+          descParts.push(`${carrier.hazmatInsp} HazMat inspection(s) with ${carrier.hazmatOosInsp || 0} out-of-service.`);
+        }
+      }
+
       riskDriverDetails.push({
         title: basic.basicName,
-        description: `Percentile: ${basic.percentile}. Threshold: ${basic.threshold}. ${basic.exceedThreshold ? 'EXCEEDS intervention threshold.' : 'Below threshold.'}`,
+        description: descParts.join(' '),
         severity: basic.exceedThreshold ? 'high' : basic.percentile > 50 ? 'medium' : 'low',
       });
     }
   } else {
-    topRiskDrivers.push('BASIC scores not available via API');
-    riskDriverDetails.push({
-      title: 'Limited BASIC Data',
-      description: 'BASIC percentile scores were not returned by the FMCSA API for this carrier. Risk assessment is based on OOS rates and crash data.',
-      severity: 'medium',
-    });
+    // No BASIC scores — build risk drivers from aggregate OOS data
+    if (carrier.vehicleInsp !== undefined && carrier.vehicleInsp > 0) {
+      topRiskDrivers.push(`Vehicle Maintenance (${carrier.vehicleOosRate?.toFixed(1) || '0'}% OOS)`);
+      const cmp = (carrier.vehicleOosRate || 0) > vNatAvgBrief ? 'above' : 'below';
+      riskDriverDetails.push({
+        title: 'Vehicle Maintenance',
+        description: `${carrier.vehicleInsp} vehicle inspections in 24 months. ${carrier.vehicleOosInsp || 0} resulted in out-of-service orders (${carrier.vehicleOosRate?.toFixed(1) || '0'}% OOS rate, ${cmp} ${vNatAvgBrief}% national average).`,
+        severity: (carrier.vehicleOosRate || 0) > vNatAvgBrief ? 'high' : 'medium',
+      });
+    }
+    if (carrier.driverInsp !== undefined && carrier.driverInsp > 0) {
+      topRiskDrivers.push(`Driver Fitness (${carrier.driverOosRate?.toFixed(1) || '0'}% OOS)`);
+      const cmp = (carrier.driverOosRate || 0) > dNatAvgBrief ? 'above' : 'below';
+      riskDriverDetails.push({
+        title: 'Driver Fitness',
+        description: `${carrier.driverInsp} driver inspections in 24 months. ${carrier.driverOosInsp || 0} resulted in out-of-service orders (${carrier.driverOosRate?.toFixed(1) || '0'}% OOS rate, ${cmp} ${dNatAvgBrief}% national average).`,
+        severity: (carrier.driverOosRate || 0) > dNatAvgBrief ? 'high' : 'medium',
+      });
+    }
+    if (carrier.crashTotal !== undefined && carrier.crashTotal > 0) {
+      const crashParts: string[] = [];
+      if (carrier.fatalCrash) crashParts.push(`${carrier.fatalCrash} fatal`);
+      if (carrier.injCrash) crashParts.push(`${carrier.injCrash} injury`);
+      if (carrier.towawayCrash) crashParts.push(`${carrier.towawayCrash} towaway`);
+      topRiskDrivers.push(`Crash History (${carrier.crashTotal} in 24mo)`);
+      riskDriverDetails.push({
+        title: 'Crash History',
+        description: `${carrier.crashTotal} crash(es) recorded in the last 24 months${crashParts.length ? ` (${crashParts.join(', ')})` : ''}. Crash indicators are a key factor in FMCSA enforcement prioritization.`,
+        severity: carrier.crashTotal > 3 ? 'high' : carrier.crashTotal > 1 ? 'medium' : 'low',
+      });
+    }
+    if (riskDriverDetails.length === 0) {
+      topRiskDrivers.push('Limited safety data available');
+      riskDriverDetails.push({
+        title: 'Limited Data',
+        description: 'BASIC percentile scores and detailed inspection data were not available for this carrier. Risk assessment is based on available OOS rates and crash data.',
+        severity: 'medium',
+      });
+    }
   }
 
   // Build score contributions from BASIC scores or defaults
@@ -578,10 +708,10 @@ export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrie
       : riskDriverDetails,
     whatChanged: carrier.inspections?.length
       ? buildInspectionWhatChanged(carrier.inspections).map((i) => `${i.label}: ${i.detail}`)
-      : ['Live snapshot — historical change tracking requires ongoing monitoring'],
+      : buildApiWhatChanged(carrier).map((i) => `${i.label}: ${i.detail}`),
     whatChangedItems: carrier.inspections?.length
       ? buildInspectionWhatChanged(carrier.inspections)
-      : [{ label: 'Data Source', direction: 'stable' as const, detail: 'Live FMCSA API snapshot' }],
+      : buildApiWhatChanged(carrier),
     scoreContributions,
     fixPlan: carrier.inspections?.length
       ? enrichFixPlanWithInspections(buildFixPlan(carrier), carrier.inspections)
@@ -620,6 +750,17 @@ export function buildBriefFromFmcsaApi(carrier: FmcsaCarrierRecord): CarrierBrie
       carrier.safetyRating ? `Safety rating: ${safetyRatingLabel(carrier.safetyRating)} (FMCSA API)` : 'No safety rating on file',
       carrier.inspections?.length ? `Inspection history: ${carrier.inspections.length} inspections with violation details (SMS scrape)` : 'Inspection details not available',
     ],
+    rawInspectionCounts: {
+      vehicleInsp: carrier.vehicleInsp,
+      vehicleOosInsp: carrier.vehicleOosInsp,
+      driverInsp: carrier.driverInsp,
+      driverOosInsp: carrier.driverOosInsp,
+      hazmatInsp: carrier.hazmatInsp,
+      hazmatOosInsp: carrier.hazmatOosInsp,
+      fatalCrash: carrier.fatalCrash,
+      injCrash: carrier.injCrash,
+      towawayCrash: carrier.towawayCrash,
+    },
   };
 
   return brief;

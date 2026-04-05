@@ -23,7 +23,7 @@ import {
   getIssueForRiskDriver,
   getCompliancePrograms,
 } from '@/lib/ai-advisory';
-import { getAllViolationScenarios, buildViolationScenariosFromInspections } from '@/lib/violation-scenarios';
+import { getAllViolationScenarios, buildViolationScenariosFromInspections, buildViolationScenariosFromApiData } from '@/lib/violation-scenarios';
 import {
   ChevronLeft,
   Wrench,
@@ -281,9 +281,34 @@ export default function SampleReportPage() {
   const aiInsight = getAiSafetyInsight(data);
   const compliancePrograms = getCompliancePrograms(data);
   const staticScenarios = getAllViolationScenarios();
-  const dynamicScenarios = inspections.length > 0
+  const inspectionScenarios = inspections.length > 0
     ? buildViolationScenariosFromInspections(inspections)
     : [];
+  // For live carriers, generate scenarios from API aggregate data (OOS rates, BASIC scores)
+  const raw = data.rawInspectionCounts;
+  const apiScenarios = data.source === 'public-live'
+    ? buildViolationScenariosFromApiData({
+        vehicleOosRate: data.metrics.vehicleOOS,
+        vehicleInsp: raw?.vehicleInsp,
+        vehicleOosInsp: raw?.vehicleOosInsp,
+        driverOosRate: data.metrics.driverOOS,
+        driverInsp: raw?.driverInsp,
+        driverOosInsp: raw?.driverOosInsp,
+        hazmatInsp: raw?.hazmatInsp,
+        hazmatOosInsp: raw?.hazmatOosInsp,
+        crashTotal: data.metrics.crashes24mo,
+        fatalCrash: raw?.fatalCrash,
+        injCrash: raw?.injCrash,
+        basicScores: data.scoreContributions.map((s) => ({
+          basicName: s.category,
+          percentile: s.score,
+          threshold: 65,
+          exceedThreshold: s.score > 65,
+        })),
+      })
+    : [];
+  // Priority: inspection-scraped scenarios > API aggregate scenarios > static mock
+  const dynamicScenarios = inspectionScenarios.length > 0 ? inspectionScenarios : apiScenarios;
   const violationScenarios = data.source === 'public-live' && dynamicScenarios.length > 0
     ? [...dynamicScenarios, ...staticScenarios]
     : staticScenarios;
