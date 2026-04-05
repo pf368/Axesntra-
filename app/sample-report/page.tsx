@@ -618,12 +618,28 @@ export default function SampleReportPage() {
                   {scenario.severity}
                 </span>
                 <span className="font-mono">{scenario.code}</span>
+                {scenario.occurrenceCount && scenario.occurrenceCount > 0 && (
+                  <span className={`inline-flex items-center justify-center rounded-full min-w-[18px] h-[18px] px-1 text-[10px] font-bold ${
+                    effectiveScenarioId === scenario.id
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-200 text-slate-600'
+                  }`}>
+                    {scenario.occurrenceCount}
+                  </span>
+                )}
                 {scenario.id.startsWith('live-') && (
                   <span className="rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-semibold uppercase text-emerald-700">
                     Live
                   </span>
                 )}
                 <span className="hidden sm:inline text-slate-500">— {scenario.category}</span>
+                {scenario.mostRecentDate && (
+                  <span className={`hidden sm:inline text-[10px] ${
+                    effectiveScenarioId === scenario.id ? 'text-slate-400' : 'text-slate-400'
+                  }`}>
+                    {scenario.mostRecentDate}
+                  </span>
+                )}
               </button>
             ))}
           </div>
