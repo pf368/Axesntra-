@@ -104,6 +104,18 @@ export interface CarrierBrief {
   lastRefreshed: string;
   sourceNotes?: string[];
   dataCoverage?: string[];
+  // Raw API aggregate inspection data (for live carriers)
+  rawInspectionCounts?: {
+    vehicleInsp?: number;
+    vehicleOosInsp?: number;
+    driverInsp?: number;
+    driverOosInsp?: number;
+    hazmatInsp?: number;
+    hazmatOosInsp?: number;
+    fatalCrash?: number;
+    injCrash?: number;
+    towawayCrash?: number;
+  };
 }
 
 export interface CarrierListItem {

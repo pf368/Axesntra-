@@ -1322,3 +1322,268 @@ export function buildViolationScenariosFromInspections(
     };
   });
 }
+
+/**
+ * Generates ViolationScenario objects from QC API aggregate data (OOS rates, BASIC scores,
+ * inspection counts) when individual SMS inspection records are unavailable.
+ *
+ * Uses the carrier's aggregate safety profile to generate scenarios for the most likely
+ * violation categories based on OOS rates and BASIC percentiles.
+ */
+export function buildViolationScenariosFromApiData(carrier: {
+  vehicleOosRate?: number;
+  vehicleOosRateNationalAverage?: string;
+  vehicleInsp?: number;
+  vehicleOosInsp?: number;
+  driverOosRate?: number;
+  driverOosRateNationalAverage?: string;
+  driverInsp?: number;
+  driverOosInsp?: number;
+  hazmatOosRate?: number;
+  hazmatOosRateNationalAverage?: string;
+  hazmatInsp?: number;
+  hazmatOosInsp?: number;
+  crashTotal?: number;
+  fatalCrash?: number;
+  injCrash?: number;
+  basicScores?: { basicName: string; percentile: number; threshold: number; exceedThreshold: boolean }[];
+}): ViolationScenario[] {
+  const scenarios: ViolationScenario[] = [];
+  const vNatAvg = parseFloat(carrier.vehicleOosRateNationalAverage || '20.72');
+  const dNatAvg = parseFloat(carrier.driverOosRateNationalAverage || '5.51');
+
+  // Vehicle Maintenance violations (most common OOS category)
+  if (carrier.vehicleInsp && carrier.vehicleInsp > 0) {
+    const oosRate = carrier.vehicleOosRate || 0;
+    const aboveAvg = oosRate > vNatAvg;
+    const oosCount = carrier.vehicleOosInsp || 0;
+
+    // Brake system defects — #1 most common vehicle OOS violation nationally
+    scenarios.push({
+      id: 'live-api-393-45',
+      code: '393.45',
+      title: 'Brake System — Inoperative / Defective Service Brakes',
+      severity: oosCount > 0 ? 'OOS' : 'Non-OOS',
+      category: 'Vehicle Maintenance',
+      summary: `Based on ${carrier.vehicleInsp} vehicle inspections (${oosCount} OOS, ${oosRate.toFixed(1)}% OOS rate${aboveAvg ? ` — above ${vNatAvg}% national average` : ''}). Brake defects are the #1 vehicle OOS violation nationally, accounting for ~25% of all vehicle OOS orders.`,
+      aiResponses: {
+        prevent: {
+          promptKey: 'prevent',
+          promptLabel: 'Ask AI: How do I prevent this?',
+          sections: [
+            {
+              id: 'what-it-means',
+              heading: 'What this violation means',
+              icon: 'info',
+              content: `CFR 393.45 covers brake system pressure/vacuum loss, air leaks, pushrod travel, and overall brake effectiveness. With ${carrier.vehicleInsp} vehicle inspections and a ${oosRate.toFixed(1)}% OOS rate, brake defects are a significant risk factor.`,
+            },
+            {
+              id: 'carrier-context',
+              heading: 'Your carrier profile',
+              icon: 'search',
+              content: [
+                `${carrier.vehicleInsp} vehicle inspections in the 24-month SMS window.`,
+                `${oosCount} out-of-service events (${oosRate.toFixed(1)}% OOS rate).`,
+                aboveAvg
+                  ? `Your vehicle OOS rate exceeds the ${vNatAvg}% national average, indicating higher-than-typical maintenance deficiency risk.`
+                  : `Your vehicle OOS rate is below the ${vNatAvg}% national average.`,
+              ],
+            },
+            {
+              id: 'prevention',
+              heading: 'Prevention strategy',
+              icon: 'shield',
+              content: [
+                'Implement daily brake stroke measurements during pre-trip inspections.',
+                'Schedule quarterly brake system audits with certified technicians.',
+                'Install automatic slack adjusters on all units and verify proper function.',
+                'Track pushrod travel limits and replace components before failure threshold.',
+                'Create a brake defect closeout log to ensure all reported issues are resolved within 24 hours.',
+              ],
+            },
+          ],
+          immediateActions: [
+            'Audit all current equipment for brake system compliance',
+            'Brief drivers on brake-specific pre-trip inspection procedures',
+            'Review maintenance records for brake repair frequency and patterns',
+          ],
+        },
+        ...(oosCount > 0 ? {
+          'why-oos': {
+            promptKey: 'why-oos',
+            promptLabel: 'Ask AI: Why does this cause OOS?',
+            sections: [
+              {
+                id: 'oos-explanation',
+                heading: 'Why brake defects trigger Out-of-Service',
+                icon: 'alert',
+                content: `Brake system defects are the most common cause of vehicle out-of-service orders. Under CVSA criteria, a vehicle is placed OOS when 20% or more of its brake components are defective. This carrier had ${oosCount} vehicle OOS event(s) out of ${carrier.vehicleInsp} inspections.`,
+                highlighted: true,
+                highlightColor: 'red',
+              },
+              {
+                id: 'impact',
+                heading: 'Impact on safety record',
+                icon: 'info',
+                content: [
+                  'Each OOS event adds severity weight to the Vehicle Maintenance BASIC calculation.',
+                  'OOS violations receive a +2 severity weight bonus in BASIC percentile scoring.',
+                  aboveAvg
+                    ? `At ${oosRate.toFixed(1)}% OOS rate (above ${vNatAvg}% national average), this carrier faces elevated scrutiny.`
+                    : `Current OOS rate of ${oosRate.toFixed(1)}% is below the national average but still requires monitoring.`,
+                ],
+              },
+            ],
+          },
+        } : {}),
+      },
+    });
+
+    // Lighting violations — #2 most common vehicle violation
+    if (carrier.vehicleInsp >= 3) {
+      scenarios.push({
+        id: 'live-api-393-9',
+        code: '393.9',
+        title: 'Lamps / Lighting — Inoperable Required Lamps',
+        severity: 'Non-OOS',
+        category: 'Vehicle Maintenance',
+        summary: `Lighting violations are the #2 most cited vehicle defect nationally. With ${carrier.vehicleInsp} vehicle inspections, this carrier should prioritize lighting system checks in pre-trip procedures.`,
+        aiResponses: {
+          prevent: {
+            promptKey: 'prevent',
+            promptLabel: 'Ask AI: How do I prevent this?',
+            sections: [
+              {
+                id: 'what-it-means',
+                heading: 'What this violation means',
+                icon: 'info',
+                content: 'CFR 393.9 requires all required lamps (headlamps, tail lamps, stop lamps, turn signals, clearance lamps) to be operational. Inoperable lamps are consistently one of the top vehicle violations found during roadside inspections.',
+              },
+              {
+                id: 'prevention',
+                heading: 'Prevention strategy',
+                icon: 'shield',
+                content: [
+                  'Include specific lamp function checks in pre-trip inspection checklist.',
+                  'Carry spare bulbs and fuses on all units.',
+                  'Replace dim or intermittent bulbs proactively during scheduled maintenance.',
+                  'Consider upgrading to LED lighting for longer service life.',
+                  'Train drivers to perform walk-around light checks with a partner.',
+                ],
+              },
+            ],
+            immediateActions: [
+              'Verify all required lamps on each unit during next pre-trip',
+              'Stock spare bulbs and fuses in all tractors',
+              'Add lighting check to driver pre-trip sign-off form',
+            ],
+          },
+        },
+      });
+    }
+
+    // Tire violations — #3 most common
+    if (carrier.vehicleInsp >= 5) {
+      scenarios.push({
+        id: 'live-api-393-75',
+        code: '393.75',
+        title: 'Tires — Flat / Audible Air Leak / Tread Depth',
+        severity: oosCount > 2 ? 'OOS' : 'Non-OOS',
+        category: 'Vehicle Maintenance',
+        summary: `Tire violations are among the top 3 vehicle defects nationally. Carriers with ${carrier.vehicleInsp}+ inspections should have robust tire maintenance programs.`,
+        aiResponses: {
+          prevent: {
+            promptKey: 'prevent',
+            promptLabel: 'Ask AI: How do I prevent this?',
+            sections: [
+              {
+                id: 'what-it-means',
+                heading: 'What this violation means',
+                icon: 'info',
+                content: 'CFR 393.75 covers tire inflation, tread depth (minimum 4/32" steer, 2/32" other), visible damage, and audible air leaks. Tire defects can result in OOS when multiple tires are affected or when steer tires fail minimum tread requirements.',
+              },
+              {
+                id: 'prevention',
+                heading: 'Prevention strategy',
+                icon: 'shield',
+                content: [
+                  'Require tire pressure checks with a calibrated gauge during pre-trip inspections.',
+                  'Implement a tire tread depth measurement program — replace at 5/32" steer, 3/32" drive/trailer.',
+                  'Schedule quarterly professional tire inspections for all units.',
+                  'Track tire age and replace tires over 7 years regardless of tread depth.',
+                ],
+              },
+            ],
+            immediateActions: [
+              'Measure tread depth on all steer tires fleet-wide',
+              'Check inflation pressure on all units',
+              'Replace any tires approaching minimum legal tread depth',
+            ],
+          },
+        },
+      });
+    }
+  }
+
+  // Driver-related violations
+  if (carrier.driverInsp && carrier.driverInsp > 0) {
+    const dOosRate = carrier.driverOosRate || 0;
+    const dAboveAvg = dOosRate > dNatAvg;
+    const dOosCount = carrier.driverOosInsp || 0;
+
+    // HOS violations — most common driver OOS
+    scenarios.push({
+      id: 'live-api-395-8',
+      code: '395.8',
+      title: 'Hours of Service — Log / ELD Violation',
+      severity: dOosCount > 0 ? 'OOS' : 'Non-OOS',
+      category: 'Driver Fitness / HOS',
+      summary: `Based on ${carrier.driverInsp} driver inspections (${dOosCount} OOS, ${dOosRate.toFixed(1)}% OOS rate${dAboveAvg ? ` — above ${dNatAvg}% national average` : ''}). HOS/ELD violations are the leading driver OOS cause nationally.`,
+      aiResponses: {
+        prevent: {
+          promptKey: 'prevent',
+          promptLabel: 'Ask AI: How do I prevent this?',
+          sections: [
+            {
+              id: 'what-it-means',
+              heading: 'What this violation means',
+              icon: 'info',
+              content: `CFR 395.8 requires drivers to maintain accurate records of duty status. Violations include failure to maintain logs, falsified records, and ELD malfunctions. With ${carrier.driverInsp} driver inspections and ${dOosCount} OOS events, HOS compliance is a key focus area.`,
+            },
+            {
+              id: 'carrier-context',
+              heading: 'Your carrier profile',
+              icon: 'search',
+              content: [
+                `${carrier.driverInsp} driver inspections in the 24-month SMS window.`,
+                `${dOosCount} driver out-of-service events (${dOosRate.toFixed(1)}% OOS rate).`,
+                dAboveAvg
+                  ? `Driver OOS rate exceeds the ${dNatAvg}% national average.`
+                  : `Driver OOS rate is at or below the ${dNatAvg}% national average.`,
+              ],
+            },
+            {
+              id: 'prevention',
+              heading: 'Prevention strategy',
+              icon: 'shield',
+              content: [
+                'Verify ELD functionality and compliance daily before dispatch.',
+                'Train all drivers on proper ELD operation and RODS requirements.',
+                'Implement real-time HOS monitoring to prevent violations before they occur.',
+                'Conduct monthly audits of driver logs for accuracy and completeness.',
+                'Establish a corrective action process for drivers with repeated HOS violations.',
+              ],
+            },
+          ],
+          immediateActions: [
+            'Audit all current driver ELD records for compliance',
+            'Verify ELD devices are registered and functioning on all units',
+            'Review dispatch practices to ensure adequate drive time margins',
+          ],
+        },
+      },
+    });
+  }
+
+  return scenarios;
+}
