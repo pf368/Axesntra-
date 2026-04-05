@@ -161,6 +161,17 @@ export interface SMSInspectionResult {
   error?: string;
 }
 
+export interface ViolationOccurrence {
+  inspectionId?: string;
+  reportNumber: string;
+  inspectionDate: string;
+  state: string;
+  plateNumber?: string;
+  plateState?: string;
+  vehicleType?: string;
+  violation: ViolationDetail;
+}
+
 export interface CarrierTrends {
   usdot: string;
   trendData: TrendData;

@@ -6,6 +6,10 @@ export interface ViolationScenario {
   category: string;
   summary: string;
   aiResponses: Record<string, ViolationAiResponse>;
+  occurrenceCount?: number;
+  mostRecentDate?: string;
+  mostRecentState?: string;
+  occurrences?: import('./types').ViolationOccurrence[];
 }
 
 export interface ViolationAiResponse {
@@ -1190,41 +1194,44 @@ export function getAllViolationScenarios(): ViolationScenario[] {
 
 /**
  * Generates ViolationScenario objects from real inspection data.
- * These can be merged with the static scenarios for live carrier reports.
+ * Preserves linkage back to individual inspection records via ViolationOccurrence.
  */
 export function buildViolationScenariosFromInspections(
   inspections: import('./types').InspectionWithViolations[]
 ): ViolationScenario[] {
-  // Aggregate violations by code
+  type ViolOccurrence = import('./types').ViolationOccurrence;
+
+  // Aggregate violations by code, preserving full occurrence data
   const violMap = new Map<string, {
     code: string;
     description: string;
     count: number;
     oosCount: number;
-    dates: string[];
-    states: string[];
+    occurrences: ViolOccurrence[];
   }>();
 
   for (const insp of inspections) {
     for (const v of insp.violations) {
+      const occurrence: ViolOccurrence = {
+        inspectionId: insp.inspectionId,
+        reportNumber: insp.reportNumber,
+        inspectionDate: insp.inspectionDate,
+        state: insp.state,
+        violation: v,
+      };
+
       const existing = violMap.get(v.code);
       if (existing) {
         existing.count++;
         if (v.oos) existing.oosCount++;
-        if (insp.inspectionDate && !existing.dates.includes(insp.inspectionDate)) {
-          existing.dates.push(insp.inspectionDate);
-        }
-        if (insp.state && !existing.states.includes(insp.state)) {
-          existing.states.push(insp.state);
-        }
+        existing.occurrences.push(occurrence);
       } else {
         violMap.set(v.code, {
           code: v.code,
           description: v.description,
           count: 1,
           oosCount: v.oos ? 1 : 0,
-          dates: insp.inspectionDate ? [insp.inspectionDate] : [],
-          states: insp.state ? [insp.state] : [],
+          occurrences: [occurrence],
         });
       }
     }
@@ -1237,8 +1244,25 @@ export function buildViolationScenariosFromInspections(
 
   return topViolations.map((v): ViolationScenario => {
     const severity: 'OOS' | 'Non-OOS' = v.oosCount > 0 ? 'OOS' : 'Non-OOS';
-    const mostRecent = v.dates.sort().reverse()[0] || 'Unknown date';
-    const stateList = v.states.join(', ') || 'Unknown';
+
+    // Sort occurrences by date descending (most recent first)
+    const sorted = [...v.occurrences].sort((a, b) => {
+      const da = new Date(a.inspectionDate);
+      const db = new Date(b.inspectionDate);
+      return db.getTime() - da.getTime();
+    });
+
+    const mostRecentDate = sorted[0]?.inspectionDate || 'Unknown date';
+    const mostRecentState = sorted[0]?.state || 'Unknown';
+    const uniqueStates = Array.from(new Set(sorted.map((o) => o.state).filter(Boolean)));
+    const stateList = uniqueStates.join(', ') || 'Unknown';
+
+    // Build occurrence-aware summary referencing actual report numbers
+    const reportRefs = sorted
+      .slice(0, 3)
+      .map((o) => `${o.reportNumber} (${o.state}, ${o.inspectionDate})`)
+      .join('; ');
+    const moreText = sorted.length > 3 ? ` and ${sorted.length - 3} more` : '';
 
     return {
       id: `live-${v.code.replace(/[^a-zA-Z0-9]/g, '-')}`,
@@ -1246,7 +1270,11 @@ export function buildViolationScenariosFromInspections(
       title: v.description,
       severity,
       category: 'Vehicle Maintenance',
-      summary: `Found in ${v.count} inspection(s) over 24 months. ${v.oosCount > 0 ? `${v.oosCount} resulted in OOS. ` : ''}Most recent: ${mostRecent} in ${stateList}.`,
+      summary: `Found in ${v.count} inspection(s) over 24 months. ${v.oosCount > 0 ? `${v.oosCount} resulted in OOS. ` : ''}Most recent: ${mostRecentDate} in ${mostRecentState}.`,
+      occurrenceCount: sorted.length,
+      mostRecentDate,
+      mostRecentState,
+      occurrences: sorted,
       aiResponses: {
         prevent: {
           promptKey: 'prevent',
@@ -1267,7 +1295,8 @@ export function buildViolationScenariosFromInspections(
                 v.oosCount > 0
                   ? `${v.oosCount} of these resulted in out-of-service orders, meaning the vehicle was removed from service until the defect was corrected.`
                   : 'None of these occurrences resulted in out-of-service orders.',
-                `Most recent occurrence: ${mostRecent}.`,
+                `Inspection reports: ${reportRefs}${moreText}.`,
+                `Most recent occurrence: ${mostRecentDate} in ${mostRecentState}.`,
               ],
             },
             {

@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { ViolationScenario } from '@/lib/violation-scenarios';
 import { ViolationAiAssistantPanel } from '@/components/violation-ai-assistant-panel';
-import { TriangleAlert as AlertTriangle, Sparkles, ShieldAlert, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { ViolationInspectionList } from '@/components/violation-inspection-list';
+import { TriangleAlert as AlertTriangle, Sparkles, ShieldAlert, Tag, ChevronDown, ChevronUp, Calendar, MapPin } from 'lucide-react';
 
 interface ViolationScenarioCardProps {
   scenario: ViolationScenario;
@@ -61,7 +62,45 @@ export function ViolationScenarioCard({ scenario }: ViolationScenarioCardProps) 
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        {/* Occurrence Summary Bar */}
+        {scenario.occurrences && scenario.occurrences.length > 0 && (
+          <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-slate-900">{scenario.occurrenceCount}</span>
+                <span className="text-slate-500">inspection{(scenario.occurrenceCount || 0) !== 1 ? 's' : ''}</span>
+              </div>
+              {(scenario.occurrences.filter((o) => o.violation.oos).length > 0) && (
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+                  <span className="font-semibold text-red-700">
+                    {scenario.occurrences.filter((o) => o.violation.oos).length}
+                  </span>
+                  <span className="text-slate-500">OOS</span>
+                </div>
+              )}
+              {scenario.mostRecentDate && (
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                  <span className="text-slate-600">Most recent: {scenario.mostRecentDate}</span>
+                </div>
+              )}
+              {scenario.mostRecentState && (
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                  <span className="text-slate-600">in {scenario.mostRecentState}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Related Inspections Table */}
+        {scenario.occurrences && scenario.occurrences.length > 0 && (
+          <ViolationInspectionList occurrences={scenario.occurrences} />
+        )}
+
+        <div className={`flex flex-wrap gap-2 ${scenario.occurrences && scenario.occurrences.length > 0 ? 'mt-5' : ''}`}>
           {promptKeys.map((key) => {
             const response = scenario.aiResponses[key];
             const isActive = activePrompt === key;
