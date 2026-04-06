@@ -1193,6 +1193,71 @@ export function getAllViolationScenarios(): ViolationScenario[] {
 }
 
 /**
+ * Enriches existing ViolationScenario[] with occurrence data from inspection records.
+ * Matches violations by code prefix (e.g. scenario code "396.3(a)(1)" matches
+ * inspection violation code "396.3(a)(1)" or any code starting with that prefix).
+ * Returns new scenario objects — does not mutate the originals.
+ */
+export function enrichScenariosWithOccurrences(
+  scenarios: ViolationScenario[],
+  inspections: import('./types').InspectionWithViolations[]
+): ViolationScenario[] {
+  type ViolOccurrence = import('./types').ViolationOccurrence;
+
+  // Build a map of scenario code → occurrences from inspection data
+  const codeOccurrences = new Map<string, ViolOccurrence[]>();
+
+  for (const insp of inspections) {
+    for (const v of insp.violations) {
+      const occurrence: ViolOccurrence = {
+        inspectionId: insp.inspectionId,
+        reportNumber: insp.reportNumber,
+        inspectionDate: insp.inspectionDate,
+        state: insp.state,
+        violation: v,
+      };
+
+      // Match against each scenario code
+      for (const scenario of scenarios) {
+        // Exact match or prefix match (e.g. "396.3(a)(1)" matches "396.3(a)(1)")
+        if (v.code === scenario.code || v.code.startsWith(scenario.code)) {
+          const existing = codeOccurrences.get(scenario.code) || [];
+          existing.push(occurrence);
+          codeOccurrences.set(scenario.code, existing);
+        }
+      }
+    }
+  }
+
+  return scenarios.map((scenario): ViolationScenario => {
+    const occurrences = codeOccurrences.get(scenario.code);
+    if (!occurrences || occurrences.length === 0) {
+      return scenario;
+    }
+
+    // Sort by date descending
+    const sorted = [...occurrences].sort((a, b) => {
+      const da = new Date(a.inspectionDate);
+      const db = new Date(b.inspectionDate);
+      return db.getTime() - da.getTime();
+    });
+
+    const mostRecentDate = sorted[0]?.inspectionDate;
+    const mostRecentState = sorted[0]?.state;
+    const oosCount = sorted.filter((o) => o.violation.oos).length;
+
+    return {
+      ...scenario,
+      occurrenceCount: sorted.length,
+      mostRecentDate,
+      mostRecentState,
+      occurrences: sorted,
+      summary: `${scenario.summary} Found in ${sorted.length} inspection(s). ${oosCount > 0 ? `${oosCount} resulted in OOS. ` : ''}Most recent: ${mostRecentDate} in ${mostRecentState}.`,
+    };
+  });
+}
+
+/**
  * Generates ViolationScenario objects from real inspection data.
  * Preserves linkage back to individual inspection records via ViolationOccurrence.
  */
