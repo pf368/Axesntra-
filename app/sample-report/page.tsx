@@ -23,7 +23,8 @@ import {
   getIssueForRiskDriver,
   getCompliancePrograms,
 } from '@/lib/ai-advisory';
-import { getAllViolationScenarios, buildViolationScenariosFromInspections, buildViolationScenariosFromApiData } from '@/lib/violation-scenarios';
+import { getAllViolationScenarios, buildViolationScenariosFromInspections, buildViolationScenariosFromApiData, enrichScenariosWithOccurrences } from '@/lib/violation-scenarios';
+import { MOCK_CARRIER_INSPECTIONS } from '@/lib/seed-inspections-mock';
 import {
   ChevronLeft,
   Wrench,
@@ -188,15 +189,27 @@ export default function SampleReportPage() {
     fetchCarrier();
   }, [selectedUsdot]);
 
-  // Fetch inspection data for live carriers after carrier data loads
+  // Fetch inspection data after carrier data loads (live carriers via API, mock via seed data)
   useEffect(() => {
-    if (!data || data.source !== 'public-live') {
+    if (!data) {
       setInspections([]);
       setInspectionPercentile(undefined);
       return;
     }
 
     const usdot = data.usdot;
+
+    // For mock carriers, load seed inspection data directly
+    if (data.source !== 'public-live') {
+      const mockData = MOCK_CARRIER_INSPECTIONS[usdot];
+      if (mockData) {
+        setInspections(mockData);
+      } else {
+        setInspections([]);
+      }
+      setInspectionPercentile(undefined);
+      return;
+    }
 
     async function fetchInspections() {
       setInspectionsLoading(true);
@@ -280,7 +293,11 @@ export default function SampleReportPage() {
 
   const aiInsight = getAiSafetyInsight(data);
   const compliancePrograms = getCompliancePrograms(data);
-  const staticScenarios = getAllViolationScenarios();
+  const baseStaticScenarios = getAllViolationScenarios();
+  // Enrich static scenarios with occurrence data when inspections are available
+  const staticScenarios = inspections.length > 0
+    ? enrichScenariosWithOccurrences(baseStaticScenarios, inspections)
+    : baseStaticScenarios;
   const inspectionScenarios = inspections.length > 0
     ? buildViolationScenariosFromInspections(inspections)
     : [];
@@ -307,7 +324,7 @@ export default function SampleReportPage() {
         })),
       })
     : [];
-  // Priority: inspection-scraped scenarios > API aggregate scenarios > static mock
+  // Priority: inspection-scraped scenarios > API aggregate scenarios > static (enriched)
   const dynamicScenarios = inspectionScenarios.length > 0 ? inspectionScenarios : apiScenarios;
   const violationScenarios = data.source === 'public-live' && dynamicScenarios.length > 0
     ? [...dynamicScenarios, ...staticScenarios]
