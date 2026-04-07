@@ -29,6 +29,19 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+
+    /* Clinical Architect design tokens */
+    --surface: 210 20% 98%;
+    --surface-container: 220 13% 93%;
+    --surface-panel: 0 0% 100%;
+    --primary-indigo: 245 72% 48%;
+    --primary-indigo-light: 243 76% 59%;
+    --ai-teal: 173 100% 21%;
+    --ai-teal-light: 172 66% 29%;
+    --error-red: 0 74% 42%;
+    --on-surface: 240 6% 30%;
+    --on-surface-variant: 240 5% 34%;
+    --outline-variant: 250 11% 62%;
   }
 
   .dark {

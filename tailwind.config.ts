@@ -9,12 +9,36 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      boxShadow: {
+        ambient: '0px 4px 20px rgba(100, 116, 139, 0.06), 0px 2px 8px rgba(100, 116, 139, 0.04)',
+      },
       colors: {
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          container: "hsl(var(--surface-container))",
+          panel: "hsl(var(--surface-panel))",
+        },
+        indigo: {
+          DEFAULT: "hsl(var(--primary-indigo))",
+          light: "hsl(var(--primary-indigo-light))",
+        },
+        "ai-teal": {
+          DEFAULT: "hsl(var(--ai-teal))",
+          light: "hsl(var(--ai-teal-light))",
+        },
+        "on-surface": {
+          DEFAULT: "hsl(var(--on-surface))",
+          variant: "hsl(var(--on-surface-variant))",
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
