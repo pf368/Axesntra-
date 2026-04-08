@@ -1,10 +1,13 @@
 'use client';
 
+import { ChevronRight } from 'lucide-react';
+
 interface BasicScoreCardProps {
   label: string;
   score: number;
   status: 'GOOD' | 'WARNING' | 'ALERT';
   bars?: number[];
+  onClick?: () => void;
 }
 
 const STATUS_STYLES = {
@@ -19,14 +22,26 @@ const BAR_COLORS = {
   ALERT: ['bg-red-100', 'bg-red-200', 'bg-red-300', 'bg-red-400', 'bg-red-500', 'bg-red-500', 'bg-red-600', 'bg-red-700'],
 };
 
-export function BasicScoreCard({ label, score, status, bars }: BasicScoreCardProps) {
+export function BasicScoreCard({ label, score, status, bars, onClick }: BasicScoreCardProps) {
   const displayBars = bars || generateBars(score, status);
 
   return (
-    <div className="rounded-xl bg-surface-panel p-4 shadow-ambient">
-      <p className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-on-surface-variant">
-        {label}
-      </p>
+    <div
+      onClick={onClick}
+      className={`rounded-xl bg-surface-panel p-4 shadow-ambient transition-all ${
+        onClick
+          ? 'cursor-pointer hover:shadow-lg hover:scale-[1.02] active:scale-[0.99] group'
+          : ''
+      }`}
+    >
+      <div className="flex items-start justify-between">
+        <p className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-on-surface-variant">
+          {label}
+        </p>
+        {onClick && (
+          <ChevronRight className="h-3.5 w-3.5 text-on-surface-variant/30 group-hover:text-indigo transition-colors" />
+        )}
+      </div>
       <div className="mt-2 flex items-baseline gap-2">
         <span className="font-mono text-2xl font-semibold tracking-tight text-foreground">
           {score.toFixed(1)}

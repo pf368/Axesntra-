@@ -14,11 +14,14 @@ import {
   Calendar,
   FileText,
   ShieldAlert,
+  ExternalLink,
 } from 'lucide-react';
+import { ViolationAiTooltip } from '@/components/dashboard/violation-ai-tooltip';
 
 interface InspectionHistoryTableProps {
   inspections: InspectionWithViolations[];
   basicPercentile?: number;
+  onInspectionClick?: (inspection: InspectionWithViolations) => void;
 }
 
 function OosBadge({ oos }: { oos: boolean }) {
@@ -51,23 +54,28 @@ function SeverityIndicator({ weight }: { weight: number }) {
 
 function ViolationRow({ violation }: { violation: ViolationDetail }) {
   return (
-    <tr className="border-t border-slate-100">
-      <td className="py-2 pl-10 pr-3 text-xs font-mono text-slate-700">
-        {violation.code}
-      </td>
-      <td className="py-2 px-3 text-xs text-slate-600">
-        {violation.description}
-      </td>
-      <td className="py-2 px-3">
-        <SeverityIndicator weight={violation.severityWeight} />
-      </td>
-      <td className="py-2 px-3 text-xs text-slate-500 text-center">
-        {violation.timeWeight || '—'}
-      </td>
-      <td className="py-2 px-3">
-        {violation.oos && <OosBadge oos={true} />}
-      </td>
-    </tr>
+    <>
+      <tr className="border-t border-slate-100">
+        <td className="py-2 pl-10 pr-3 text-xs font-mono text-slate-700">
+          <div className="flex items-center gap-1">
+            {violation.code}
+            <ViolationAiTooltip code={violation.code} basicCategory={violation.basicCategory} />
+          </div>
+        </td>
+        <td className="py-2 px-3 text-xs text-slate-600">
+          {violation.description}
+        </td>
+        <td className="py-2 px-3">
+          <SeverityIndicator weight={violation.severityWeight} />
+        </td>
+        <td className="py-2 px-3 text-xs text-slate-500 text-center">
+          {violation.timeWeight || '—'}
+        </td>
+        <td className="py-2 px-3">
+          {violation.oos && <OosBadge oos={true} />}
+        </td>
+      </tr>
+    </>
   );
 }
 
@@ -75,10 +83,12 @@ function InspectionRow({
   inspection,
   isExpanded,
   onToggle,
+  onViewReport,
 }: {
   inspection: InspectionWithViolations;
   isExpanded: boolean;
   onToggle: () => void;
+  onViewReport?: () => void;
 }) {
   const hasViolations = inspection.violations && inspection.violations.length > 0;
 
@@ -139,6 +149,21 @@ function InspectionRow({
         <td className="py-3 px-3">
           <OosBadge oos={inspection.oos} />
         </td>
+        <td className="py-3 px-3">
+          {onViewReport && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewReport();
+              }}
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-indigo hover:bg-indigo/5 transition-colors"
+              title="View Full Report"
+            >
+              <ExternalLink className="h-3 w-3" />
+              <span className="hidden sm:inline">Report</span>
+            </button>
+          )}
+        </td>
       </tr>
 
       {isExpanded && hasViolations && (
@@ -180,6 +205,7 @@ function InspectionRow({
 export function InspectionHistoryTable({
   inspections,
   basicPercentile,
+  onInspectionClick,
 }: InspectionHistoryTableProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
@@ -277,6 +303,7 @@ export function InspectionHistoryTable({
                 <th className="py-3 px-3 text-center">Violations</th>
                 <th className="py-3 px-3 text-left">Severity</th>
                 <th className="py-3 px-3 text-left">OOS</th>
+                {onInspectionClick && <th className="py-3 px-3 text-left"></th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -288,6 +315,7 @@ export function InspectionHistoryTable({
                     inspection={insp}
                     isExpanded={expandedIds.has(key)}
                     onToggle={() => toggleExpanded(key)}
+                    onViewReport={onInspectionClick ? () => onInspectionClick(insp) : undefined}
                   />
                 );
               })}
