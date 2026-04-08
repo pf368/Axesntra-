@@ -15,17 +15,29 @@ export async function GET(
     );
   }
 
+  // Optional BASIC category filter
+  const url = new URL(request.url);
+  const basicFilter = url.searchParams.get('basic');
+
   try {
     const result = await fetchFullInspectionHistory(usdot);
 
     if (!result.success) {
       // Fallback to seed data for Johnsonville demo carrier
       if (usdot === '862406') {
+        const details = basicFilter
+          ? SEED_INSPECTIONS_862406.filter((insp) =>
+              insp.violations.some((v) =>
+                v.basicCategory.toLowerCase().includes(basicFilter.toLowerCase())
+              )
+            )
+          : SEED_INSPECTIONS_862406;
+
         return NextResponse.json({
           data: {
-            inspections: SEED_INSPECTIONS_862406.map(({ violations, ...rest }) => rest),
-            inspectionDetails: SEED_INSPECTIONS_862406,
-            totalCount: SEED_INSPECTIONS_862406.length,
+            inspections: details.map(({ violations, ...rest }) => rest),
+            inspectionDetails: details,
+            totalCount: details.length,
             basicPercentile: undefined,
           },
           status: 200,
@@ -38,11 +50,26 @@ export async function GET(
       );
     }
 
+    let inspectionDetails = result.inspectionDetails || [];
+    let inspections = result.inspections || [];
+
+    // Apply BASIC filter if specified
+    if (basicFilter) {
+      const filterLower = basicFilter.toLowerCase();
+      inspectionDetails = inspectionDetails.filter((insp) =>
+        insp.basicCategory?.toLowerCase().includes(filterLower) ||
+        insp.violations.some((v) => v.basicCategory.toLowerCase().includes(filterLower))
+      );
+      inspections = inspections.filter((insp) =>
+        insp.basicCategory?.toLowerCase().includes(filterLower)
+      );
+    }
+
     return NextResponse.json({
       data: {
-        inspections: result.inspections || [],
-        inspectionDetails: result.inspectionDetails || [],
-        totalCount: result.totalCount || 0,
+        inspections,
+        inspectionDetails,
+        totalCount: inspections.length,
         basicPercentile: result.basicPercentile,
       },
       status: 200,

@@ -18,6 +18,8 @@ import { BasicScoreGrid } from '@/components/dashboard/basic-score-grid';
 import { RiskScoreCard } from '@/components/dashboard/risk-score-card';
 import { SafetyLedger } from '@/components/dashboard/safety-ledger';
 import { DashboardTrendChart } from '@/components/dashboard/dashboard-trend-chart';
+import { BasicDetailView } from '@/components/dashboard/basic-detail-view';
+import { InspectionDetailModal } from '@/components/dashboard/inspection-detail-modal';
 
 // Existing components (reused in tabs)
 import { ViolationScenarioCard } from '@/components/violation-scenario-card';
@@ -41,6 +43,8 @@ export default function SampleReportPage() {
   const [inspectionPercentile, setInspectionPercentile] = useState<number | undefined>();
   const [inspectionsLoading, setInspectionsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  const [selectedBasic, setSelectedBasic] = useState<string | null>(null);
+  const [inspectionModalData, setInspectionModalData] = useState<InspectionWithViolations | null>(null);
 
   // ── Data fetching (unchanged) ──
 
@@ -246,38 +250,51 @@ export default function SampleReportPage() {
       {/* ── Overview Tab ── */}
       {activeTab === 'overview' && (
         <>
-          <EntityProfileHeader
-            carrierName={data.carrierName}
-            usdot={data.usdot}
-            operationType={operationType}
-            overallRisk={data.overallRisk}
-            isLive={data.source === 'public-live'}
-          />
-
-          <BasicScoreGrid
-            scoreContributions={data.scoreContributions}
-            riskChips={data.riskChips}
-            metrics={{
-              vehicleOOS: data.metrics.vehicleOOS,
-              driverOOS: data.metrics.driverOOS,
-              crashes24mo: data.metrics.crashes24mo,
-            }}
-          />
-
-          <DashboardTrendChart data={data.trendData} />
-
-          {/* Right sidebar content visible on mobile/tablet (below main) */}
-          <div className="xl:hidden space-y-6 mt-6">
-            <RiskScoreCard
-              overallRisk={data.overallRisk}
-              scoreContributions={data.scoreContributions}
-            />
-            <SafetyLedger
+          {selectedBasic ? (
+            <BasicDetailView
+              basicLabel={selectedBasic}
+              data={data}
               inspections={inspections}
-              whatChanged={data.whatChangedItems}
-              carrierName={data.carrierName}
+              onBack={() => setSelectedBasic(null)}
+              onInspectionClick={(insp) => setInspectionModalData(insp)}
             />
-          </div>
+          ) : (
+            <>
+              <EntityProfileHeader
+                carrierName={data.carrierName}
+                usdot={data.usdot}
+                operationType={operationType}
+                overallRisk={data.overallRisk}
+                isLive={data.source === 'public-live'}
+              />
+
+              <BasicScoreGrid
+                scoreContributions={data.scoreContributions}
+                riskChips={data.riskChips}
+                metrics={{
+                  vehicleOOS: data.metrics.vehicleOOS,
+                  driverOOS: data.metrics.driverOOS,
+                  crashes24mo: data.metrics.crashes24mo,
+                }}
+                onBasicClick={(label) => setSelectedBasic(label)}
+              />
+
+              <DashboardTrendChart data={data.trendData} />
+
+              {/* Right sidebar content visible on mobile/tablet (below main) */}
+              <div className="xl:hidden space-y-6 mt-6">
+                <RiskScoreCard
+                  overallRisk={data.overallRisk}
+                  scoreContributions={data.scoreContributions}
+                />
+                <SafetyLedger
+                  inspections={inspections}
+                  whatChanged={data.whatChangedItems}
+                  carrierName={data.carrierName}
+                />
+              </div>
+            </>
+          )}
         </>
       )}
 
@@ -366,7 +383,7 @@ export default function SampleReportPage() {
         <div>
           <div className="mb-6">
             <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-foreground">
-              Vehicle Maintenance Inspection History
+              Inspection History — All BASICs
             </h2>
             <p className="mt-1 text-xs text-on-surface-variant">
               SMS inspection records with violation details from FMCSA
@@ -382,6 +399,7 @@ export default function SampleReportPage() {
             <InspectionHistoryTable
               inspections={inspections}
               basicPercentile={inspectionPercentile}
+              onInspectionClick={(insp) => setInspectionModalData(insp)}
             />
           ) : (
             <div className="rounded-xl bg-surface-panel p-6 text-center text-sm text-on-surface-variant shadow-ambient">
@@ -459,6 +477,15 @@ export default function SampleReportPage() {
           Precision_Safety_Log_V2.0_Axesntra
         </p>
       </div>
+
+      {/* Inspection detail modal */}
+      {inspectionModalData && (
+        <InspectionDetailModal
+          inspection={inspectionModalData}
+          carrierData={data}
+          onClose={() => setInspectionModalData(null)}
+        />
+      )}
     </DashboardShell>
   );
 }

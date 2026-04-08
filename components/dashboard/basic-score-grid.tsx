@@ -11,6 +11,7 @@ interface BasicScoreGridProps {
     driverOOS: number;
     crashes24mo: number;
   };
+  onBasicClick?: (basicLabel: string) => void;
 }
 
 function riskToScore(risk: string): number {
@@ -29,7 +30,7 @@ function scoreToStatus(score: number): 'GOOD' | 'WARNING' | 'ALERT' {
   return 'GOOD';
 }
 
-export function BasicScoreGrid({ scoreContributions, riskChips, metrics }: BasicScoreGridProps) {
+export function BasicScoreGrid({ scoreContributions, riskChips, metrics, onBasicClick }: BasicScoreGridProps) {
   // Map score contributions by category keyword
   const findScore = (keyword: string): number | undefined => {
     const match = scoreContributions.find((s) =>
@@ -64,6 +65,7 @@ export function BasicScoreGrid({ scoreContributions, riskChips, metrics }: Basic
             label={card.label}
             score={card.score}
             status={scoreToStatus(card.score)}
+            onClick={onBasicClick ? () => onBasicClick(card.label) : undefined}
           />
         ))}
       </div>

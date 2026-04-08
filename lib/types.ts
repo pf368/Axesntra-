@@ -129,6 +129,15 @@ export interface CarrierListItem {
 
 // ── Inspection / Violation Types ──
 
+export interface VehicleInfo {
+  unit: number;
+  type: string;       // e.g. 'Truck Tractor', 'Semi-Trailer'
+  make: string;       // e.g. 'VOLV', 'GDAN'
+  plateState: string;
+  plateNumber: string;
+  vin: string;
+}
+
 export interface InspectionRecord {
   reportNumber: string;
   inspectionDate: string;
@@ -137,6 +146,10 @@ export interface InspectionRecord {
   totalSeverityWeight: number;
   oos: boolean;
   inspectionId?: string;
+  basicCategory?: string;
+  level?: string;        // 'I. Full', 'II. Walk-Around', 'III. Driver-Only'
+  facility?: string;     // 'Roadside', 'Terminal'
+  vehicles?: VehicleInfo[];
 }
 
 export interface ViolationDetail {
