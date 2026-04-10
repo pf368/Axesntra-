@@ -1,26 +1,18 @@
 import { HeroSection } from '@/components/hero-section';
+import { HowItWorks } from '@/components/how-it-works';
 import { UsdotSearch } from '@/components/usdot-search';
 import { BeforeAfter } from '@/components/before-after';
-import { HowItWorks } from '@/components/how-it-works';
-import { InteractiveReportPreview } from '@/components/interactive-report-preview';
-import { ProactiveMonitoring } from '@/components/proactive-monitoring';
-import { PersonaCards } from '@/components/persona-cards';
-import { CaseStudy } from '@/components/case-study';
-import { MidFunnelOffers } from '@/components/mid-funnel-offers';
+import { ProductShowcase } from '@/components/product-showcase';
 import { FinalCTA } from '@/components/final-cta';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-sb-surface">
       <HeroSection />
+      <HowItWorks />
       <UsdotSearch />
       <BeforeAfter />
-      <HowItWorks />
-      <InteractiveReportPreview />
-      <ProactiveMonitoring />
-      <PersonaCards />
-      <CaseStudy />
-      <MidFunnelOffers />
+      <ProductShowcase />
       <FinalCTA />
     </div>
   );
