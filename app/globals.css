@@ -42,6 +42,24 @@
     --on-surface: 240 6% 30%;
     --on-surface-variant: 240 5% 34%;
     --outline-variant: 250 11% 62%;
+
+    /* Sovereign Briefing homepage tokens */
+    --sb-primary: #1847a4;
+    --sb-primary-container: #3860BE;
+    --sb-surface: #f9f9f9;
+    --sb-surface-container-low: #f3f3f3;
+    --sb-surface-container: #eeeeee;
+    --sb-surface-container-high: #e8e8e8;
+    --sb-surface-container-highest: #e2e2e2;
+    --sb-surface-container-lowest: #ffffff;
+    --sb-on-surface: #1b1b1b;
+    --sb-on-surface-variant: #434652;
+    --sb-on-background: #1b1b1b;
+    --sb-secondary: #5e5e5e;
+    --sb-outline-variant: #c4c6d4;
+    --sb-error: #ba1a1a;
+    --sb-error-container: #ffdad6;
+    --sb-on-error-container: #93000a;
   }
 
   .dark {
@@ -122,6 +140,70 @@
     opacity: 1;
     transform: none;
   }
+}
+
+/* ── Sovereign Briefing homepage classes ── */
+.ai-gradient {
+  background: linear-gradient(135deg, #004ba3 0%, #1847a4 100%);
+}
+
+.agentic-gradient {
+  background: linear-gradient(135deg, #3860BE 0%, #8B5CF6 100%);
+}
+
+.palantir-card {
+  position: relative;
+  border-radius: 1.5rem;
+  background: transparent;
+  z-index: 1;
+}
+
+.palantir-card::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  background: linear-gradient(135deg, #3860BE, #8B5CF6);
+  border-radius: 1.55rem;
+  z-index: -1;
+  opacity: 0.8;
+}
+
+.palantir-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: white;
+  border-radius: 1.5rem;
+  z-index: -1;
+}
+
+.palantir-card-light {
+  background: #ffffff;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.03);
+}
+
+.gradient-border-container {
+  position: relative;
+  padding: 1.5px;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #3860BE, #8B5CF6);
+}
+
+.dark-insight-box {
+  background: #0d1117;
+  position: relative;
+  z-index: 1;
+}
+
+.data-stream {
+  mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+}
+
+.dotted-bg {
+  background-image: radial-gradient(circle, #c4c6d4 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
 /* ── Print / PDF export styles ── */

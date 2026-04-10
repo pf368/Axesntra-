@@ -1,92 +1,132 @@
-'use client';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Loader, ArrowRight, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { HeroChat } from '@/components/hero-chat';
+import { ArrowRight, Zap } from 'lucide-react';
 
-/* ── Animated background grid ── */
-function AnimatedGrid() {
+function DataStreamCards() {
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-      <svg className="absolute inset-0 w-full" style={{ height: '200%', top: 0 }} xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="hero-grid" width="48" height="48" patternUnits="userSpaceOnUse">
-            <path d="M 48 0 L 0 0 0 48" fill="none" stroke="rgba(148,163,184,0.08)" strokeWidth="1" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#hero-grid)" className="animate-grid-scroll" />
-      </svg>
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, transparent 40%, rgba(15,23,42,0.4) 100%)' }} />
+    <div className="w-full md:w-1/3 h-full overflow-hidden data-stream flex flex-col gap-4 font-mono text-[10px] text-slate-400">
+      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+        {`{"record_id": "92834", "carrier_name": "LOGISTICS_CORP", "violation_code": "395.8", "severity": 7}`}
+      </div>
+      <div className="p-3 bg-slate-100 rounded-lg border border-slate-200">
+        INSPECTION_DATE: 2023-11-12 | LOCATION: OH-71 | UNIT_ID: 10292
+      </div>
+      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+        {`{"crash_event": true, "fatalities": 0, "tow_away": true, "hazmat": false}`}
+      </div>
+      <div className="p-3 bg-slate-100 rounded-lg border border-slate-200 opacity-40">
+        CARRIER_CENSUS_DATA_RAW_SQL_FETCH_COMPLETE...
+      </div>
+      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+        {`{"vin": "1FDWF5HT6", "plate": "P928312", "violations": ["392.2"]}`}
+      </div>
+    </div>
+  );
+}
+
+function ProcessingEngine() {
+  return (
+    <div className="relative w-24 h-24 md:w-32 md:h-32 flex-shrink-0">
+      <div className="absolute inset-0 bg-blue-500 rounded-full blur-3xl opacity-10 animate-pulse" />
+      <div className="relative w-full h-full ai-gradient rounded-3xl shadow-xl flex items-center justify-center text-white border border-white/20">
+        <Zap className="h-10 w-10" />
+      </div>
+    </div>
+  );
+}
+
+function InsightCards() {
+  const insights = [
+    {
+      label: 'High Risk Violation',
+      labelColor: 'text-white',
+      time: '2m ago',
+      text: 'Hours of Service (HOS) trending 12% above threshold.',
+      bold: true,
+    },
+    {
+      label: 'AI Summary',
+      labelColor: 'text-slate-400',
+      text: (
+        <>
+          Fleet safety score improved by{' '}
+          <span className="text-white font-bold">4.2 pts</span> after corrective action.
+        </>
+      ),
+      bold: false,
+    },
+    {
+      label: 'Next Action',
+      labelColor: 'text-white',
+      text: 'Schedule Level II Inspection for 14 units at Houston yard.',
+      bold: true,
+    },
+  ];
+
+  return (
+    <div className="w-full md:w-1/2 h-full flex flex-col gap-4">
+      {insights.map((insight) => (
+        <div key={insight.label} className="gradient-border-container shadow-xl">
+          <div className="p-4 dark-insight-box rounded-xl border-l-4 overflow-hidden">
+            <div className="flex justify-between items-start mb-2">
+              <span className={`text-[10px] font-bold tracking-tighter uppercase ${insight.labelColor}`}>
+                {insight.label}
+              </span>
+              {insight.time && (
+                <span className="text-[10px] text-white/40 font-mono">{insight.time}</span>
+              )}
+            </div>
+            <p className={`text-xs ${insight.bold ? 'font-semibold text-white' : 'text-white/70'} leading-relaxed`}>
+              {insight.text}
+            </p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
 export function HeroSection() {
   return (
-    <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-24 text-white overflow-hidden">
-      <AnimatedGrid />
-
-      <div className="relative z-10 container mx-auto px-4 max-w-7xl">
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-          {/* ── Left column ── */}
-          <div className="flex-1 min-w-0 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 text-xs font-medium px-3 py-1.5 rounded-full mb-6">
-              <span className="w-2 h-2 bg-emerald-400 rounded-full" />
-              Currently in private pilot · 40+ teams enrolled
-            </div>
-
-            <h1 className="text-5xl font-bold mb-4 leading-tight">
-              Your AI safety analyst.{'\n'}Ask anything about any carrier.
-            </h1>
-            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0">
-              Axesntra reads every FMCSA record, scores every violation, and answers your questions in plain English — so your team can make faster, better-documented decisions.
-            </p>
-
-            {/* Stats row */}
-            <div className="grid grid-cols-3 divide-x divide-white/10 bg-slate-800/60 rounded-xl mb-6 max-w-xl mx-auto lg:mx-0">
-              {[
-                { value: '98%', label: 'Pilot retention rate' },
-                { value: '12k+', label: 'Carrier briefs generated' },
-                { value: 'Daily', label: 'Updated via FMCSA SMS' },
-              ].map((stat) => (
-                <div key={stat.value} className="flex flex-col items-center justify-center text-center px-4 py-4">
-                  <p className="text-white font-bold text-xl leading-tight">{stat.value}</p>
-                  <p className="text-slate-400 text-xs mt-1">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* CTA row */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-              <Link
-                href="/early-access"
-                className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold px-7 py-3.5 rounded-xl transition-colors"
-              >
-                Get access
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/#live-demo"
-                className="inline-flex items-center justify-center gap-2 border border-white/20 hover:border-white/40 text-white text-base font-semibold px-7 py-3.5 rounded-xl transition-colors"
-              >
-                See a live demo
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+    <section className="relative overflow-hidden pt-20 pb-32 bg-sb-surface">
+      <div className="max-w-7xl mx-auto px-8 grid lg:grid-cols-2 gap-16 items-center">
+        {/* Left column */}
+        <div className="z-10">
+          <span className="inline-block px-3 py-1 bg-sb-surface-container-high text-sb-primary font-semibold text-xs tracking-widest rounded mb-6 uppercase">
+            Built for safety managers, DOT managers, fleet managers, and owners.
+          </span>
+          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tighter text-sb-on-background leading-tight mb-6">
+            Know your FMCSA risk before the next inspection, audit, or renewal.
+          </h1>
+          <p className="text-lg text-sb-on-surface-variant max-w-xl mb-10 leading-relaxed">
+            Axesntra turns public FMCSA data into a live safety workspace for fleets — with an AI
+            Safety Advisor that shows what changed, why it matters, and what to fix next.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Link
+              href="/#search"
+              className="ai-gradient text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg shadow-sb-primary/20 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+            >
+              Check your DOT profile
+              <ArrowRight className="h-5 w-5" />
+            </Link>
+            <Link
+              href="/early-access"
+              className="bg-sb-surface-container-lowest border border-sb-outline-variant/30 text-sb-on-surface px-8 py-4 rounded-xl font-bold text-lg hover:bg-sb-surface-container-low transition-colors text-center"
+            >
+              Request a Demo
+            </Link>
           </div>
+        </div>
 
-          {/* ── Right column: HeroChat (desktop only) ── */}
-          <div className="hidden lg:block flex-shrink-0 w-[480px]">
-            <div className="relative">
-              <div className="absolute inset-0 -z-10 scale-110" style={{ background: 'radial-gradient(ellipse, rgba(99,102,241,0.12), transparent 70%)' }} />
-              <HeroChat />
-            </div>
+        {/* Right column: Intelligence Engine visual */}
+        <div className="relative h-[600px] hidden lg:flex items-center justify-center">
+          <div className="palantir-card-light w-full h-full overflow-hidden flex flex-col md:flex-row items-center justify-between p-8 gap-4">
+            <DataStreamCards />
+            <ProcessingEngine />
+            <InsightCards />
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
