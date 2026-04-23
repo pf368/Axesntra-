@@ -10,8 +10,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        sans: ['var(--font-dm-sans)', 'DM Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['var(--font-jetbrains-mono)', 'JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -39,6 +39,21 @@ const config: Config = {
           DEFAULT: "hsl(var(--on-surface))",
           variant: "hsl(var(--on-surface-variant))",
         },
+        /* Axesntra Platform tokens */
+        "ax-primary": "hsl(var(--ax-primary))",
+        "ax-primary-hover": "hsl(var(--ax-primary-hover))",
+        "ax-surface": "hsl(var(--ax-surface))",
+        "ax-surface-secondary": "hsl(var(--ax-surface-secondary))",
+        "ax-border": "hsl(var(--ax-border))",
+        "ax-border-light": "hsl(var(--ax-border-light))",
+        "ax-text": "hsl(var(--ax-text))",
+        "ax-text-secondary": "hsl(var(--ax-text-secondary))",
+        "ax-text-muted": "hsl(var(--ax-text-muted))",
+        "ax-success": "hsl(var(--ax-success))",
+        "ax-warning": "hsl(var(--ax-warning))",
+        "ax-danger": "hsl(var(--ax-danger))",
+        "ax-info": "hsl(var(--ax-info))",
+        /* Sovereign Briefing homepage tokens */
         "sb-primary": "#1847a4",
         "sb-primary-container": "#3860BE",
         "sb-surface": "#f9f9f9",

@@ -43,6 +43,21 @@
     --on-surface-variant: 240 5% 34%;
     --outline-variant: 250 11% 62%;
 
+    /* Axesntra Platform design tokens */
+    --ax-primary: 249 91% 59%;
+    --ax-primary-hover: 249 72% 52%;
+    --ax-surface: 0 0% 100%;
+    --ax-surface-secondary: 210 20% 98%;
+    --ax-border: 220 13% 91%;
+    --ax-border-light: 220 14% 96%;
+    --ax-text: 221 39% 11%;
+    --ax-text-secondary: 220 9% 46%;
+    --ax-text-muted: 218 11% 65%;
+    --ax-success: 160 84% 39%;
+    --ax-warning: 38 92% 50%;
+    --ax-danger: 0 84% 60%;
+    --ax-info: 217 91% 60%;
+
     /* Sovereign Briefing homepage tokens */
     --sb-primary: #1847a4;
     --sb-primary-container: #3860BE;
@@ -204,6 +219,43 @@
 .dotted-bg {
   background-image: radial-gradient(circle, #c4c6d4 1px, transparent 1px);
   background-size: 20px 20px;
+}
+
+/* ── Axesntra Platform utility classes ── */
+.ax-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+}
+
+.ax-glow {
+  box-shadow: 0 0 20px rgba(79, 57, 246, 0.1);
+}
+
+.ax-score-good { color: #10b981; }
+.ax-score-warning { color: #f59e0b; }
+.ax-score-danger { color: #ef4444; }
+.ax-score-critical { color: #dc2626; }
+
+@keyframes thinking-dot {
+  0%, 60%, 100% { opacity: 0.2; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1); }
+}
+
+.ax-thinking-dot {
+  animation: thinking-dot 1.4s ease-in-out infinite;
+}
+
+.ax-thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+.ax-thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes ax-pulse-ring {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.ax-pulse-ring {
+  animation: ax-pulse-ring 1.5s ease-out infinite;
 }
 
 /* ── Print / PDF export styles ── */

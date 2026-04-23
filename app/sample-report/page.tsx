@@ -2,52 +2,41 @@
 
 import { useState, useEffect } from 'react';
 import { CarrierBrief, CarrierListItem, InspectionWithViolations } from '@/lib/types';
-import {
-  getAiSafetyInsight,
-  getCompliancePrograms,
-} from '@/lib/ai-advisory';
-import { getAllViolationScenarios, buildViolationScenariosFromInspections, buildViolationScenariosFromApiData, enrichScenariosWithOccurrences } from '@/lib/violation-scenarios';
 import { MOCK_CARRIER_INSPECTIONS } from '@/lib/seed-inspections-mock';
-
-// Dashboard components
-import { DashboardShell } from '@/components/dashboard/dashboard-shell';
-import { DashboardSidebar, DashboardTab } from '@/components/dashboard/dashboard-sidebar';
-import { DashboardTopBar } from '@/components/dashboard/dashboard-top-bar';
-import { EntityProfileHeader } from '@/components/dashboard/entity-profile-header';
-import { BasicScoreGrid } from '@/components/dashboard/basic-score-grid';
-import { RiskScoreCard } from '@/components/dashboard/risk-score-card';
-import { SafetyLedger } from '@/components/dashboard/safety-ledger';
-import { DashboardTrendChart } from '@/components/dashboard/dashboard-trend-chart';
-import { BasicDetailView } from '@/components/dashboard/basic-detail-view';
-import { InspectionDetailModal } from '@/components/dashboard/inspection-detail-modal';
-
-// Existing components (reused in tabs)
-import { ViolationScenarioCard } from '@/components/violation-scenario-card';
-import { InspectionHistoryTable } from '@/components/inspection-history-table';
-import { AiFixPlanDrawer } from '@/components/ai-fix-plan-drawer';
-import { AiComplianceProgramCards } from '@/components/ai-compliance-program-card';
-import { AiGuidedPromptPanel } from '@/components/ai-guided-prompt-panel';
-import { AiSafetyAdvisorPanel } from '@/components/ai-safety-advisor-panel';
+import { getBasicData } from '@/lib/basic-data-adapter';
 import { LoadingSkeleton } from '@/components/loading-skeleton';
 import { ErrorState } from '@/components/empty-state';
-import { ShieldAlert, TriangleAlert as AlertTriangle } from 'lucide-react';
 
-export default function SampleReportPage() {
+// Platform components
+import { LeftNav, MobileBottomNav, NavSection } from '@/components/platform/left-nav';
+import { HomePage, type PlatformPage } from '@/components/platform/home-page';
+import { InspectionsPage } from '@/components/platform/inspections-page';
+import { AiChatPage } from '@/components/platform/ai-chat-page';
+
+// BASIC pages
+import { UnsafeDrivingPage } from '@/components/platform/basics/unsafe-driving';
+import { HOSCompliancePage } from '@/components/platform/basics/hos-compliance';
+import { VehicleMaintenancePage } from '@/components/platform/basics/vehicle-maintenance';
+import { DriverFitnessPage } from '@/components/platform/basics/driver-fitness';
+import { ControlledSubstancesPage } from '@/components/platform/basics/controlled-substances';
+import { CrashIndicatorPage } from '@/components/platform/basics/crash-indicator';
+import { HazardousMaterialsPage } from '@/components/platform/basics/hazardous-materials';
+import { SafetyManagementPage } from '@/components/platform/basics/safety-management';
+
+export default function PlatformPage() {
   const [carrierList, setCarrierList] = useState<CarrierListItem[]>([]);
   const [selectedUsdot, setSelectedUsdot] = useState<string>('');
   const [data, setData] = useState<CarrierBrief | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedScenarioId, setSelectedScenarioId] = useState<string>('medical-cert-cdl-mismatch');
   const [inspections, setInspections] = useState<InspectionWithViolations[]>([]);
   const [inspectionPercentile, setInspectionPercentile] = useState<number | undefined>();
   const [inspectionsLoading, setInspectionsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
-  const [selectedBasic, setSelectedBasic] = useState<string | null>(null);
-  const [inspectionModalData, setInspectionModalData] = useState<InspectionWithViolations | null>(null);
 
-  // ── Data fetching (unchanged) ──
+  const [currentPage, setCurrentPage] = useState<PlatformPage>('dashboard');
+  const [activeNav, setActiveNav] = useState<NavSection>('home');
 
+  // ── Carrier list ──
   useEffect(() => {
     async function fetchCarrierList() {
       try {
@@ -64,9 +53,9 @@ export default function SampleReportPage() {
     fetchCarrierList();
   }, []);
 
+  // ── Carrier data ──
   useEffect(() => {
     if (!selectedUsdot) return;
-
     async function fetchCarrier() {
       setLoading(true);
       setError(null);
@@ -89,22 +78,14 @@ export default function SampleReportPage() {
     fetchCarrier();
   }, [selectedUsdot]);
 
+  // ── Inspections ──
   useEffect(() => {
-    if (!data) {
-      setInspections([]);
-      setInspectionPercentile(undefined);
-      return;
-    }
-
+    if (!data) { setInspections([]); return; }
     const usdot = data.usdot;
 
     if (data.source !== 'public-live') {
       const mockData = MOCK_CARRIER_INSPECTIONS[usdot];
-      if (mockData) {
-        setInspections(mockData);
-      } else {
-        setInspections([]);
-      }
+      setInspections(mockData ?? []);
       setInspectionPercentile(undefined);
       return;
     }
@@ -118,38 +99,33 @@ export default function SampleReportPage() {
           setInspections(result.data.inspectionDetails || []);
           setInspectionPercentile(result.data.basicPercentile);
         }
-      } catch {
-        // Non-fatal
-      } finally {
-        setInspectionsLoading(false);
-      }
+      } catch { /* non-fatal */ }
+      finally { setInspectionsLoading(false); }
     }
     fetchInspections();
   }, [data]);
 
-  const handleRetry = () => {
-    if (selectedUsdot) {
-      setLoading(true);
-      setError(null);
-      fetch(`/api/carriers/${selectedUsdot}`)
-        .then((r) => r.json())
-        .then((result) => {
-          if (result.error) {
-            setError(result.error);
-          } else {
-            setData(result.data);
-          }
-        })
-        .catch(() => setError('Failed to load carrier data'))
-        .finally(() => setLoading(false));
-    }
-  };
+  // ── Nav sync ──
+  function handleNavChange(nav: NavSection) {
+    setActiveNav(nav);
+    if (nav === 'home') setCurrentPage('dashboard');
+    else if (nav === 'inspections') setCurrentPage('inspections');
+    else if (nav === 'ai') setCurrentPage('ai-chat');
+  }
 
-  // ── Loading / error states ──
+  function handleNavigate(page: PlatformPage) {
+    setCurrentPage(page);
+    // Keep nav highlight in sync for top-level pages
+    if (page === 'dashboard') setActiveNav('home');
+    else if (page === 'inspections') setActiveNav('inspections');
+    else if (page === 'ai-chat') setActiveNav('ai');
+    else setActiveNav('home'); // BASIC pages are sub-pages of home
+  }
 
+  // ── Loading / Error states ──
   if (loading && !data) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-ax-surface-secondary flex items-center justify-center">
         <LoadingSkeleton />
       </div>
     );
@@ -157,335 +133,90 @@ export default function SampleReportPage() {
 
   if (error && !data) {
     return (
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-ax-surface-secondary">
         <ErrorState
-          title="Failed to Load Report"
+          title="Failed to Load Platform"
           description={error}
-          onRetry={handleRetry}
+          onRetry={() => { setLoading(true); setError(null); }}
         />
       </div>
     );
   }
 
-  if (!data) {
-    return (
-      <div className="min-h-screen bg-surface">
-        <LoadingSkeleton />
-      </div>
-    );
+  if (!data) return null;
+
+  // ── BASIC page router ──
+  function renderContent() {
+    if (!data) return null;
+    const carrier = data;
+
+    if (currentPage === 'dashboard') {
+      return <HomePage data={carrier} onNavigate={handleNavigate} />;
+    }
+
+    if (currentPage === 'inspections') {
+      return <InspectionsPage inspections={inspections} basicPercentile={inspectionPercentile} />;
+    }
+
+    if (currentPage === 'ai-chat') {
+      return <AiChatPage carrier={carrier} />;
+    }
+
+    // BASIC detail pages
+    const BASIC_PAGES: PlatformPage[] = [
+      'unsafe-driving', 'hos-compliance', 'vehicle-maintenance',
+      'driver-fitness', 'controlled-substances', 'crash-indicator',
+      'hazardous-materials', 'safety-management',
+    ];
+
+    if (BASIC_PAGES.includes(currentPage)) {
+      const basicData = getBasicData(currentPage, carrier, inspections);
+      const onBack = () => handleNavigate('dashboard');
+
+      switch (currentPage) {
+        case 'unsafe-driving':
+          return <UnsafeDrivingPage basicData={basicData} carrier={carrier} onBack={onBack} />;
+        case 'hos-compliance':
+          return <HOSCompliancePage basicData={basicData} carrier={carrier} onBack={onBack} />;
+        case 'vehicle-maintenance':
+          return <VehicleMaintenancePage basicData={basicData} carrier={carrier} onBack={onBack} />;
+        case 'driver-fitness':
+          return <DriverFitnessPage basicData={basicData} carrier={carrier} onBack={onBack} />;
+        case 'controlled-substances':
+          return <ControlledSubstancesPage basicData={basicData} carrier={carrier} onBack={onBack} />;
+        case 'crash-indicator':
+          return <CrashIndicatorPage basicData={basicData} carrier={carrier} onBack={onBack} />;
+        case 'hazardous-materials':
+          return <HazardousMaterialsPage basicData={basicData} carrier={carrier} onBack={onBack} />;
+        case 'safety-management':
+          return <SafetyManagementPage basicData={basicData} carrier={carrier} onBack={onBack} />;
+        default:
+          return null;
+      }
+    }
+
+    return null;
   }
-
-  // ── Data processing (unchanged) ──
-
-  const operationType = data.operationType || 'Interstate / For-Hire';
-  const aiInsight = getAiSafetyInsight(data);
-  const compliancePrograms = getCompliancePrograms(data);
-  const baseStaticScenarios = getAllViolationScenarios();
-  const staticScenarios = inspections.length > 0
-    ? enrichScenariosWithOccurrences(baseStaticScenarios, inspections)
-    : baseStaticScenarios;
-  const inspectionScenarios = inspections.length > 0
-    ? buildViolationScenariosFromInspections(inspections)
-    : [];
-  const raw = data.rawInspectionCounts;
-  const apiScenarios = data.source === 'public-live'
-    ? buildViolationScenariosFromApiData({
-        vehicleOosRate: data.metrics.vehicleOOS,
-        vehicleInsp: raw?.vehicleInsp,
-        vehicleOosInsp: raw?.vehicleOosInsp,
-        driverOosRate: data.metrics.driverOOS,
-        driverInsp: raw?.driverInsp,
-        driverOosInsp: raw?.driverOosInsp,
-        hazmatInsp: raw?.hazmatInsp,
-        hazmatOosInsp: raw?.hazmatOosInsp,
-        crashTotal: data.metrics.crashes24mo,
-        fatalCrash: raw?.fatalCrash,
-        injCrash: raw?.injCrash,
-        basicScores: data.scoreContributions.map((s) => ({
-          basicName: s.category,
-          percentile: s.score,
-          threshold: 65,
-          exceedThreshold: s.score > 65,
-        })),
-      })
-    : [];
-  const dynamicScenarios = inspectionScenarios.length > 0 ? inspectionScenarios : apiScenarios;
-  const violationScenarios = data.source === 'public-live' && dynamicScenarios.length > 0
-    ? [...dynamicScenarios, ...staticScenarios]
-    : staticScenarios;
-
-  const selectedExists = violationScenarios.some((s) => s.id === selectedScenarioId);
-  const effectiveScenarioId = selectedExists
-    ? selectedScenarioId
-    : violationScenarios[0]?.id || 'medical-cert-cdl-mismatch';
-
-  // ── Dashboard render ──
 
   return (
-    <DashboardShell
-      sidebar={
-        <DashboardSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      }
-      topBar={
-        <DashboardTopBar
-          carrierList={carrierList}
-          selectedUsdot={selectedUsdot}
-          onCarrierChange={setSelectedUsdot}
-        />
-      }
-      rightSidebar={
-        <>
-          <RiskScoreCard
-            overallRisk={data.overallRisk}
-            scoreContributions={data.scoreContributions}
-          />
-          <SafetyLedger
-            inspections={inspections}
-            whatChanged={data.whatChangedItems}
-            carrierName={data.carrierName}
-          />
-        </>
-      }
-    >
-      {/* ── Overview Tab ── */}
-      {activeTab === 'overview' && (
-        <>
-          {selectedBasic ? (
-            <BasicDetailView
-              basicLabel={selectedBasic}
-              data={data}
-              inspections={inspections}
-              onBack={() => setSelectedBasic(null)}
-              onInspectionClick={(insp) => setInspectionModalData(insp)}
-            />
-          ) : (
-            <>
-              <EntityProfileHeader
-                carrierName={data.carrierName}
-                usdot={data.usdot}
-                operationType={operationType}
-                overallRisk={data.overallRisk}
-                isLive={data.source === 'public-live'}
-              />
+    <div className="flex h-screen overflow-hidden bg-ax-surface-secondary font-sans">
+      {/* Left navigation */}
+      <LeftNav
+        activeNav={activeNav}
+        onNavChange={handleNavChange}
+        carrierList={carrierList}
+        selectedUsdot={selectedUsdot}
+        onCarrierChange={(usdot) => { setSelectedUsdot(usdot); setCurrentPage('dashboard'); setActiveNav('home'); }}
+        carrierName={data.carrierName}
+      />
 
-              <BasicScoreGrid
-                scoreContributions={data.scoreContributions}
-                riskChips={data.riskChips}
-                metrics={{
-                  vehicleOOS: data.metrics.vehicleOOS,
-                  driverOOS: data.metrics.driverOOS,
-                  crashes24mo: data.metrics.crashes24mo,
-                }}
-                onBasicClick={(label) => setSelectedBasic(label)}
-              />
+      {/* Main content */}
+      <main className="flex-1 overflow-hidden flex flex-col">
+        {renderContent()}
+      </main>
 
-              <DashboardTrendChart data={data.trendData} />
-
-              {/* Right sidebar content visible on mobile/tablet (below main) */}
-              <div className="xl:hidden space-y-6 mt-6">
-                <RiskScoreCard
-                  overallRisk={data.overallRisk}
-                  scoreContributions={data.scoreContributions}
-                />
-                <SafetyLedger
-                  inspections={inspections}
-                  whatChanged={data.whatChangedItems}
-                  carrierName={data.carrierName}
-                />
-              </div>
-            </>
-          )}
-        </>
-      )}
-
-      {/* ── Violations Tab ── */}
-      {activeTab === 'violations' && (
-        <div>
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50">
-                <ShieldAlert className="h-4 w-4 text-red-700" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-foreground">
-                  AI Violation Analysis
-                </h2>
-                <p className="text-xs text-on-surface-variant">
-                  Select a violation to see root cause, prevention steps, and compliance workflow
-                </p>
-              </div>
-            </div>
-            <span className="shrink-0 rounded-full bg-surface-container px-2.5 py-0.5 text-xs font-medium text-on-surface-variant font-mono">
-              {violationScenarios.length} scenarios
-            </span>
-          </div>
-
-          {/* Scenario selector tabs */}
-          <div className="mb-4 flex flex-wrap gap-2">
-            {violationScenarios.map((scenario) => (
-              <button
-                key={scenario.id}
-                onClick={() => setSelectedScenarioId(scenario.id)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
-                  effectiveScenarioId === scenario.id
-                    ? 'bg-foreground text-background shadow-ambient'
-                    : 'bg-surface-panel text-on-surface-variant hover:bg-surface-container shadow-ambient'
-                }`}
-              >
-                <span
-                  className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
-                    scenario.severity === 'OOS'
-                      ? effectiveScenarioId === scenario.id
-                        ? 'bg-red-500 text-white'
-                        : 'bg-red-100 text-red-700'
-                      : effectiveScenarioId === scenario.id
-                        ? 'bg-amber-400 text-white'
-                        : 'bg-amber-100 text-amber-700'
-                  }`}
-                >
-                  {scenario.severity}
-                </span>
-                <span className="font-mono">{scenario.code}</span>
-                {scenario.occurrenceCount && scenario.occurrenceCount > 0 && (
-                  <span className={`inline-flex items-center justify-center rounded-full min-w-[18px] h-[18px] px-1 text-[10px] font-bold ${
-                    effectiveScenarioId === scenario.id
-                      ? 'bg-white/20 text-white'
-                      : 'bg-surface-container text-on-surface-variant'
-                  }`}>
-                    {scenario.occurrenceCount}
-                  </span>
-                )}
-                {scenario.id.startsWith('live-') && (
-                  <span className="rounded bg-ai-teal/10 px-1 py-0.5 text-[9px] font-semibold uppercase text-ai-teal">
-                    Live
-                  </span>
-                )}
-                <span className="hidden sm:inline text-on-surface-variant/60">— {scenario.category}</span>
-                {scenario.mostRecentDate && (
-                  <span className="hidden sm:inline text-[10px] text-on-surface-variant/50">
-                    {scenario.mostRecentDate}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {violationScenarios
-            .filter((s) => s.id === effectiveScenarioId)
-            .map((scenario) => (
-              <ViolationScenarioCard key={scenario.id} scenario={scenario} />
-            ))}
-        </div>
-      )}
-
-      {/* ── Inspections Tab ── */}
-      {activeTab === 'inspections' && (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-foreground">
-              Inspection History — All BASICs
-            </h2>
-            <p className="mt-1 text-xs text-on-surface-variant">
-              SMS inspection records with violation details from FMCSA
-            </p>
-          </div>
-
-          {inspectionsLoading ? (
-            <div className="rounded-xl bg-surface-panel p-8 text-center shadow-ambient">
-              <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-on-surface-variant/20 border-t-indigo" />
-              <p className="mt-2 text-sm text-on-surface-variant">Loading inspection history...</p>
-            </div>
-          ) : inspections.length > 0 ? (
-            <InspectionHistoryTable
-              inspections={inspections}
-              basicPercentile={inspectionPercentile}
-              onInspectionClick={(insp) => setInspectionModalData(insp)}
-            />
-          ) : (
-            <div className="rounded-xl bg-surface-panel p-6 text-center text-sm text-on-surface-variant shadow-ambient">
-              No SMS inspection records available for this carrier.
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Remediation Tab ── */}
-      {activeTab === 'remediation' && (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-foreground">
-              Prioritized Remediation Plan
-            </h2>
-            <p className="mt-1 text-xs text-on-surface-variant">
-              AI-generated fix plan based on carrier risk profile. Click rows for detailed guidance.
-            </p>
-          </div>
-          <AiFixPlanDrawer fixPlan={data.fixPlan} data={data} />
-
-          <div className="mt-8">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.08em] text-foreground">
-              Compliance Programs
-            </h2>
-            <AiComplianceProgramCards programs={compliancePrograms} />
-          </div>
-
-          {/* What Changed section */}
-          <div className="mt-8">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.08em] text-foreground">
-              What Changed
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {data.whatChangedItems.map((item, i) => (
-                <div key={i} className="rounded-xl bg-surface-panel p-4 shadow-ambient">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`h-2 w-2 rounded-full ${
-                      item.direction === 'up' ? 'bg-red-500' : item.direction === 'down' ? 'bg-ai-teal' : 'bg-on-surface-variant/30'
-                    }`} />
-                    <span className="text-xs font-semibold text-foreground">{item.label}</span>
-                  </div>
-                  <p className="text-xs text-on-surface-variant leading-relaxed">{item.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── AI Advisor Tab ── */}
-      {activeTab === 'ai' && (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-foreground">
-              AI Safety Advisor
-            </h2>
-            <p className="mt-1 text-xs text-on-surface-variant">
-              Ask questions about this carrier&apos;s safety profile
-            </p>
-          </div>
-
-          <AiSafetyAdvisorPanel insight={aiInsight} />
-
-          <div className="mt-8">
-            <AiGuidedPromptPanel data={data} />
-          </div>
-        </div>
-      )}
-
-      {/* Watermark footer */}
-      <div className="mt-12 pb-16 lg:pb-4">
-        <p className="font-mono text-[10px] text-on-surface-variant/20 uppercase tracking-[0.2em] select-none">
-          Precision_Safety_Log_V2.0_Axesntra
-        </p>
-      </div>
-
-      {/* Inspection detail modal */}
-      {inspectionModalData && (
-        <InspectionDetailModal
-          inspection={inspectionModalData}
-          carrierData={data}
-          onClose={() => setInspectionModalData(null)}
-        />
-      )}
-    </DashboardShell>
+      {/* Mobile bottom nav */}
+      <MobileBottomNav activeNav={activeNav} onNavChange={handleNavChange} />
+    </div>
   );
 }
