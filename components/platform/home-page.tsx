@@ -2,15 +2,14 @@
 
 import { motion } from 'motion/react';
 import {
-  AlertTriangle, Brain, ChevronRight, TrendingUp, TrendingDown,
+  AlertTriangle, Brain, ChevronRight,
   Truck, Shield, Clock, Zap, BarChart2, Activity,
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { MiniBarSparkline } from '@/components/platform/sparkline';
 import { ScoreBadge, getScoreColor } from '@/components/platform/score-badge';
-import type { CarrierBrief, ScoreContribution } from '@/lib/types';
+import type { CarrierBrief } from '@/lib/types';
 
 export type PlatformPage =
   | 'dashboard'
@@ -56,12 +55,6 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
     : 54.2;
 
   const needsAttention = data.scoreContributions.filter((s) => s.score >= 65);
-  const trendMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const trendChartData = trendMonths.map((month, i) => ({
-    month,
-    compliance: data.trendData?.vehicleOOS?.[i]?.value ?? 70 + Math.sin(i * 0.5) * 10,
-    risk: data.trendData?.driverOOS?.[i]?.value ?? 55 + Math.cos(i * 0.4) * 12,
-  }));
 
   return (
     <div className="flex-1 overflow-y-auto bg-ax-surface-secondary">
@@ -191,108 +184,93 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
               );
             })}
           </div>
-        </div>
 
-        {/* OOS Rates + Trend Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* OOS Rate Cards */}
-          <div className="space-y-3">
-            <OosCard
-              label="Vehicle OOS Rate"
-              value={data.metrics.vehicleOOS}
-              national={21.7}
-              unit="%"
-            />
-            <OosCard
-              label="Driver OOS Rate"
-              value={data.metrics.driverOOS}
-              national={5.1}
-              unit="%"
-            />
-            <OosCard
-              label="Crashes (24 mo)"
-              value={data.metrics.crashes24mo}
-              national={null}
-              unit=" crashes"
-            />
-          </div>
+          {/* OOS Rates + Inspection Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+            {/* Out-of-Service Rates */}
+            <div className="bg-white rounded-2xl border border-ax-border p-6">
+              <p className="text-[11px] font-semibold text-ax-text-muted uppercase tracking-[0.1em] mb-6">Out-of-Service Rates</p>
 
-          {/* Trend Chart */}
-          <div className="lg:col-span-2 bg-white rounded-xl border border-ax-border p-5">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-xs font-semibold text-ax-text-muted uppercase tracking-wider">12-Month Trend</p>
-              <div className="flex items-center gap-4 text-xs text-ax-text-muted">
-                <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-ax-primary rounded inline-block" />Compliance</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-emerald-500 rounded inline-block" />AI Risk Model</span>
+              <div className="space-y-6">
+                <OosRow
+                  label="Vehicle"
+                  carrierRate={data.metrics.vehicleOOS}
+                  nationalRate={23.4}
+                />
+                <OosRow
+                  label="Driver"
+                  carrierRate={data.metrics.driverOOS}
+                  nationalRate={6.7}
+                />
+                <OosRow
+                  label="Hazmat"
+                  carrierRate={null}
+                  nationalRate={4.4}
+                />
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={trendChartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} domain={[0, 100]} />
-                <Tooltip
-                  contentStyle={{ fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                  labelStyle={{ fontWeight: 600, color: '#111827' }}
-                />
-                <Line type="monotone" dataKey="compliance" stroke="#4f39f6" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="risk" stroke="#10b981" strokeWidth={2} dot={false} strokeDasharray="4 2" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
-        {/* What Changed */}
-        {data.whatChangedItems && data.whatChangedItems.length > 0 && (
-          <div>
-            <h2 className="text-xs font-semibold text-ax-text-muted uppercase tracking-wider mb-3">What Changed</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {data.whatChangedItems.map((item, i) => (
-                <div key={i} className="bg-white rounded-xl border border-ax-border p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    {item.direction === 'up' ? (
-                      <TrendingUp className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                    ) : item.direction === 'down' ? (
-                      <TrendingDown className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    ) : (
-                      <span className="h-1.5 w-1.5 rounded-full bg-ax-text-muted shrink-0 mt-1" />
-                    )}
-                    <span className="text-xs font-semibold text-ax-text">{item.label}</span>
-                  </div>
-                  <p className="text-xs text-ax-text-secondary leading-relaxed">{item.detail}</p>
+            {/* Inspection Activity */}
+            <div className="bg-white rounded-2xl border border-ax-border p-6">
+              <p className="text-[11px] font-semibold text-ax-text-muted uppercase tracking-[0.1em] mb-6">Inspection Activity</p>
+
+              <div className="grid grid-cols-3 gap-6 text-center">
+                <div>
+                  <p className="text-4xl font-bold font-mono text-ax-text tracking-tight">14</p>
+                  <p className="text-xs text-ax-text-muted mt-1">Inspections</p>
+                  <p className="text-[10px] text-ax-text-muted">last 30 days</p>
                 </div>
-              ))}
+                <div>
+                  <p className="text-4xl font-bold font-mono text-ax-text tracking-tight">9</p>
+                  <p className="text-xs text-ax-text-muted mt-1">Level I</p>
+                  <p className="text-[10px] text-ax-text-muted">full inspections</p>
+                </div>
+                <div>
+                  <p className="text-4xl font-bold font-mono text-emerald-600 tracking-tight">6</p>
+                  <p className="text-xs text-ax-text-muted mt-1">Violations</p>
+                  <p className="text-[10px] text-ax-text-muted">cited</p>
+                </div>
+              </div>
             </div>
           </div>
-        )}
 
-        <div className="h-16" /> {/* mobile bottom nav spacing */}
+          <div className="h-16" />
+        </div>
       </div>
     </div>
   );
 }
 
-function OosCard({ label, value, national, unit }: { label: string; value: number; national: number | null; unit: string }) {
-  const isAbove = national !== null && value > national;
+function OosRow({ label, carrierRate, nationalRate }: { label: string; carrierRate: number | null; nationalRate: number }) {
+  const hasCarrier = carrierRate !== null;
+  const isBelow = hasCarrier && carrierRate < nationalRate;
+  const barPct = hasCarrier ? Math.min((carrierRate / nationalRate) * 100, 100) : 0;
+
   return (
-    <div className="bg-white rounded-xl border border-ax-border p-4 flex items-start justify-between gap-3">
-      <div>
-        <p className="text-xs text-ax-text-muted font-medium mb-1">{label}</p>
-        <span className={cn('text-xl font-bold font-mono', isAbove ? 'text-red-600' : 'text-ax-text')}>
-          {value}{unit}
-        </span>
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-ax-text font-medium">{label}</span>
+        <div className="flex items-baseline gap-3">
+          <span className={cn('text-sm font-bold font-mono', hasCarrier ? (isBelow ? 'text-emerald-600' : 'text-red-500') : 'text-ax-text-muted')}>
+            {hasCarrier ? `${carrierRate.toFixed(1)}%` : '—'}
+          </span>
+          <span className="text-sm font-mono text-ax-text-muted">{nationalRate.toFixed(1)}%</span>
+        </div>
       </div>
-      {national !== null && (
-        <div className="text-right">
-          <p className="text-[10px] text-ax-text-muted">National avg</p>
-          <p className="text-xs font-mono font-semibold text-ax-text-secondary">{national}{unit}</p>
-          {isAbove ? (
-            <Badge variant="danger" className="mt-1 text-[10px]">Above avg</Badge>
-          ) : (
-            <Badge variant="success" className="mt-1 text-[10px]">Below avg</Badge>
+      <div className="flex items-center gap-3 mb-1">
+        <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+          {hasCarrier && (
+            <div
+              className={cn('h-full rounded-full', isBelow ? 'bg-emerald-500' : 'bg-blue-500')}
+              style={{ width: `${barPct}%` }}
+            />
           )}
         </div>
-      )}
+      </div>
+      <div className="flex justify-end gap-4 text-[10px] text-ax-text-muted">
+        <span>Carrier</span>
+        <span>National</span>
+      </div>
     </div>
   );
 }
