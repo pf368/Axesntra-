@@ -1,7 +1,7 @@
 'use client';
 
-import { motion, AnimatePresence } from 'motion/react';
-import { Home, ClipboardList, MessageSquare, Settings, HelpCircle, ChevronDown, Truck } from 'lucide-react';
+import { motion } from 'motion/react';
+import { LayoutDashboard, ClipboardList, Sparkles, Settings, ChevronDown, Bell, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { CarrierListItem } from '@/lib/types';
@@ -16,9 +16,9 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Dashboard', icon: Home },
+  { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'inspections', label: 'Inspections', icon: ClipboardList, badge: 14 },
-  { id: 'ai', label: 'AI Assistant', icon: MessageSquare },
+  { id: 'ai', label: 'AI Assistant', icon: Sparkles },
 ];
 
 interface LeftNavProps {
@@ -28,27 +28,32 @@ interface LeftNavProps {
   selectedUsdot: string;
   onCarrierChange: (usdot: string) => void;
   carrierName?: string;
+  alertItems?: { color: string; text: string }[];
 }
 
-export function LeftNav({ activeNav, onNavChange, carrierList, selectedUsdot, onCarrierChange, carrierName }: LeftNavProps) {
+export function LeftNav({ activeNav, onNavChange, carrierList, selectedUsdot, onCarrierChange, carrierName, alertItems }: LeftNavProps) {
+  const alerts = alertItems ?? [
+    { color: 'bg-red-500', text: 'HOS exceeds threshold' },
+    { color: 'bg-amber-500', text: 'Vehicle maint. rising' },
+  ];
+
   return (
-    <aside className="hidden lg:flex flex-col w-[220px] shrink-0 border-r border-ax-border bg-white h-screen sticky top-0 overflow-y-auto">
+    <aside className="hidden lg:flex flex-col w-[180px] shrink-0 bg-[#fafbfc] h-screen sticky top-0 overflow-y-auto">
       {/* Brand */}
-      <div className="px-5 py-5 border-b border-ax-border">
-        <span className="text-base font-bold tracking-tight text-ax-text">Axesntra</span>
-        <span className="ml-1.5 text-xs text-ax-text-muted font-medium">Platform</span>
+      <div className="px-5 pt-5 pb-4 flex items-center gap-2">
+        <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
+          <span className="text-white text-[10px] font-bold">A</span>
+        </div>
+        <span className="text-sm font-bold tracking-tight text-ax-text">Axesntra</span>
       </div>
 
       {/* Carrier Selector */}
-      <div className="px-3 py-3 border-b border-ax-border">
-        <label className="text-[10px] font-semibold text-ax-text-muted uppercase tracking-wider block mb-1.5 px-2">
-          Active Carrier
-        </label>
+      <div className="px-3 pb-4">
         <div className="relative">
           <select
             value={selectedUsdot}
             onChange={(e) => onCarrierChange(e.target.value)}
-            className="w-full appearance-none bg-ax-surface-secondary border border-ax-border rounded-lg pl-3 pr-8 py-2 text-xs font-medium text-ax-text focus:outline-none focus:ring-2 focus:ring-ax-primary/20 focus:border-ax-primary cursor-pointer transition-colors"
+            className="w-full appearance-none bg-white border border-ax-border rounded-lg pl-3 pr-7 py-2 text-xs font-medium text-ax-text focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
           >
             {carrierList.map((c) => (
               <option key={c.usdot} value={c.usdot}>
@@ -56,19 +61,18 @@ export function LeftNav({ activeNav, onNavChange, carrierList, selectedUsdot, on
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ax-text-muted pointer-events-none" />
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ax-text-muted pointer-events-none" />
         </div>
-        {carrierName && (
-          <div className="flex items-center gap-1.5 mt-2 px-1">
-            <Truck className="h-3 w-3 text-ax-text-muted shrink-0" />
-            <span className="text-[10px] text-ax-text-muted truncate">{carrierName}</span>
-          </div>
-        )}
+      </div>
+
+      {/* Menu label */}
+      <div className="px-5 mb-1">
+        <p className="text-[10px] font-semibold text-ax-text-muted uppercase tracking-[0.12em]">Menu</p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4">
-        <div className="relative space-y-0.5">
+      <nav className="px-3 flex-1">
+        <div className="space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const isActive = activeNav === item.id;
             const Icon = item.icon;
@@ -78,25 +82,28 @@ export function LeftNav({ activeNav, onNavChange, carrierList, selectedUsdot, on
                 key={item.id}
                 onClick={() => onNavChange(item.id)}
                 className={cn(
-                  'relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left',
+                  'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors text-left',
                   isActive
-                    ? 'text-ax-primary bg-ax-primary/8'
-                    : 'text-ax-text-secondary hover:text-ax-text hover:bg-ax-border-light'
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-ax-text-secondary hover:text-ax-text hover:bg-gray-100'
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="nav-indicator"
-                    className="absolute inset-0 bg-ax-primary/8 rounded-lg"
+                    className="absolute inset-0 bg-blue-50 rounded-lg"
                     transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
                   />
                 )}
-                <Icon className={cn('h-4 w-4 relative z-10 shrink-0', isActive ? 'text-ax-primary' : 'text-ax-text-muted')} />
+                <Icon className={cn('h-4 w-4 relative z-10 shrink-0', isActive ? 'text-blue-600' : 'text-ax-text-muted')} />
                 <span className="relative z-10 flex-1">{item.label}</span>
                 {item.badge !== undefined && (
-                  <Badge variant={isActive ? 'default' : 'secondary'} className="relative z-10 text-[10px] h-4 px-1.5 font-mono">
+                  <span className={cn(
+                    'relative z-10 text-[10px] font-semibold min-w-[20px] h-[18px] px-1 rounded flex items-center justify-center',
+                    isActive ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
+                  )}>
                     {item.badge}
-                  </Badge>
+                  </span>
                 )}
               </button>
             );
@@ -104,48 +111,45 @@ export function LeftNav({ activeNav, onNavChange, carrierList, selectedUsdot, on
         </div>
 
         {/* Alerts Section */}
-        <div className="mt-6">
-          <p className="text-[10px] font-semibold text-ax-text-muted uppercase tracking-wider px-3 mb-2">
-            Alerts
-          </p>
-          <div className="space-y-1">
-            <AlertItem dot="bg-red-500" text="2 OOS violations detected" />
-            <AlertItem dot="bg-amber-500" text="SMS score trending up" />
-            <AlertItem dot="bg-blue-500" text="Renewal in 47 days" />
+        <div className="mt-8">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Bell className="h-3.5 w-3.5 text-amber-600" />
+              <span className="text-xs font-semibold text-amber-800">Alerts</span>
+              <span className="ml-auto text-[10px] font-bold text-amber-700 bg-amber-200 rounded px-1.5 py-0.5">
+                {alerts.length} new
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {alerts.map((a, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', a.color)} />
+                  <span className="text-[11px] text-amber-900">{a.text}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-3 border-t border-ax-border space-y-0.5">
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-ax-text-secondary hover:text-ax-text hover:bg-ax-border-light transition-colors">
+      <div className="px-3 py-3 space-y-1">
+        <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-ax-text-secondary hover:text-ax-text hover:bg-gray-100 transition-colors">
           <Settings className="h-4 w-4 text-ax-text-muted" />
           <span>Settings</span>
         </button>
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-ax-text-secondary hover:text-ax-text hover:bg-ax-border-light transition-colors">
-          <HelpCircle className="h-4 w-4 text-ax-text-muted" />
-          <span>Help & Support</span>
-        </button>
-        <div className="mt-2 pt-2 border-t border-ax-border flex items-center gap-2.5 px-1">
-          <div className="w-7 h-7 rounded-full bg-ax-primary/10 flex items-center justify-center text-ax-primary text-xs font-bold shrink-0">
-            SM
+
+        <div className="pt-2 flex items-center gap-2 px-2">
+          <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+            NS
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-ax-text truncate">Safety Manager</p>
-            <p className="text-[10px] text-ax-text-muted truncate">admin@axesntra.com</p>
+            <p className="text-xs font-semibold text-ax-text truncate">North Star</p>
+            <p className="text-[10px] text-ax-text-muted truncate">Admin</p>
           </div>
         </div>
       </div>
     </aside>
-  );
-}
-
-function AlertItem({ dot, text }: { dot: string; text: string }) {
-  return (
-    <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg hover:bg-ax-border-light cursor-pointer">
-      <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', dot)} />
-      <span className="text-xs text-ax-text-secondary truncate">{text}</span>
-    </div>
   );
 }
 
@@ -167,13 +171,13 @@ export function MobileBottomNav({ activeNav, onNavChange }: MobileNavProps) {
             onClick={() => onNavChange(item.id)}
             className={cn(
               'flex-1 flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition-colors relative',
-              isActive ? 'text-ax-primary' : 'text-ax-text-muted'
+              isActive ? 'text-blue-600' : 'text-ax-text-muted'
             )}
           >
             {isActive && (
               <motion.div
                 layoutId="mobile-nav-indicator"
-                className="absolute top-0 inset-x-4 h-0.5 bg-ax-primary rounded-full"
+                className="absolute top-0 inset-x-4 h-0.5 bg-blue-600 rounded-full"
                 transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
               />
             )}
