@@ -329,8 +329,77 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
             })}
           </div>
 
+          {/* OOS Rates + Inspection Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Out-of-Service Rates */}
+            <div className="bg-white rounded-2xl border border-ax-border p-6">
+              <p className="text-[11px] font-semibold text-ax-text-muted uppercase tracking-[0.1em] mb-6">Out-of-Service Rates</p>
+              <div className="space-y-6">
+                <OosRow label="Vehicle" carrierRate={data.metrics.vehicleOOS} nationalRate={23.4} />
+                <OosRow label="Driver" carrierRate={data.metrics.driverOOS} nationalRate={6.7} />
+                <OosRow label="Hazmat" carrierRate={null} nationalRate={4.4} />
+              </div>
+            </div>
+
+            {/* Inspection Activity */}
+            <div className="bg-white rounded-2xl border border-ax-border p-6">
+              <p className="text-[11px] font-semibold text-ax-text-muted uppercase tracking-[0.1em] mb-6">Inspection Activity</p>
+              <div className="grid grid-cols-3 gap-6 text-center">
+                <div>
+                  <p className="text-4xl font-bold font-mono text-ax-text tracking-tight">14</p>
+                  <p className="text-xs text-ax-text-muted mt-1">Inspections</p>
+                  <p className="text-[10px] text-ax-text-muted">last 30 days</p>
+                </div>
+                <div>
+                  <p className="text-4xl font-bold font-mono text-ax-text tracking-tight">9</p>
+                  <p className="text-xs text-ax-text-muted mt-1">Level I</p>
+                  <p className="text-[10px] text-ax-text-muted">full inspections</p>
+                </div>
+                <div>
+                  <p className="text-4xl font-bold font-mono text-emerald-600 tracking-tight">6</p>
+                  <p className="text-xs text-ax-text-muted mt-1">Violations</p>
+                  <p className="text-[10px] text-ax-text-muted">cited</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="h-16" />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function OosRow({ label, carrierRate, nationalRate }: { label: string; carrierRate: number | null; nationalRate: number }) {
+  const hasCarrier = carrierRate !== null;
+  const isBelow = hasCarrier && carrierRate < nationalRate;
+  const barPct = hasCarrier ? Math.min((carrierRate / nationalRate) * 100, 100) : 0;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-ax-text font-medium">{label}</span>
+        <div className="flex items-baseline gap-3">
+          <span className={cn('text-sm font-bold font-mono', hasCarrier ? (isBelow ? 'text-emerald-600' : 'text-red-500') : 'text-ax-text-muted')}>
+            {hasCarrier ? `${carrierRate.toFixed(1)}%` : '—'}
+          </span>
+          <span className="text-sm font-mono text-ax-text-muted">{nationalRate.toFixed(1)}%</span>
+        </div>
+      </div>
+      <div className="mb-1">
+        <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+          {hasCarrier && (
+            <div
+              className={cn('h-full rounded-full', isBelow ? 'bg-emerald-500' : 'bg-blue-500')}
+              style={{ width: `${barPct}%` }}
+            />
+          )}
+        </div>
+      </div>
+      <div className="flex justify-end gap-4 text-[10px] text-ax-text-muted">
+        <span>Carrier</span>
+        <span>National</span>
       </div>
     </div>
   );
