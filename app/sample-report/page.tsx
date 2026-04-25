@@ -211,7 +211,7 @@ export default function PlatformPage() {
       />
 
       {/* Main content */}
-      <main className="flex-1 overflow-hidden flex flex-col">
+      <main className="flex-1 overflow-y-auto flex flex-col">
         {renderContent()}
       </main>
 
