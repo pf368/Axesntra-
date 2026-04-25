@@ -177,7 +177,7 @@ export default function PlatformPage() {
         case 'unsafe-driving':
           return <UnsafeDrivingPage basicData={basicData} carrier={carrier} onBack={onBack} />;
         case 'hos-compliance':
-          return <HOSCompliancePage basicData={basicData} carrier={carrier} onBack={onBack} />;
+          return <HOSCompliancePage onBack={onBack} />;
         case 'vehicle-maintenance':
           return <VehicleMaintenancePage basicData={basicData} carrier={carrier} onBack={onBack} />;
         case 'driver-fitness':
