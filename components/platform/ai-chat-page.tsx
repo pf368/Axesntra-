@@ -1,304 +1,582 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Brain, MessageSquare, Plus, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import {
+  Plus, MessageSquare, Bell, HelpCircle, Sparkles,
+  Paperclip, ArrowUp, User,
+} from 'lucide-react';
 import type { CarrierBrief } from '@/lib/types';
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+interface ViolationRow {
+  violation: string;
+  frequency: number;
+  riskLevel: 'HIGH RISK' | 'STABLE' | 'ELEVATED';
+}
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
+  userText?: string;
+  isThinking?: boolean;
+  thinkingLabel?: string;
+  thinkingStatus?: string;
+  assistantContent?: React.ReactNode;
+  tableData?: ViolationRow[];
 }
 
 interface Session {
   id: string;
   title: string;
-  lastMessage: string;
-  timestamp: Date;
+  preview: string;
+  messages: Message[];
 }
 
-const QUICK_SUGGESTIONS = [
-  'What are my highest-risk BASIC categories?',
-  'Which drivers need immediate attention?',
-  'How do I improve my Vehicle Maintenance score?',
-  'What is my risk of a CSA intervention?',
-  'Explain the SMS scoring methodology',
-  'What DataQ challenges should I file?',
-];
+// ─── Props ─────────────────────────────────────────────────────────────────────
 
 interface AiChatPageProps {
   carrier: CarrierBrief;
 }
 
-export function AiChatPage({ carrier }: AiChatPageProps) {
-  const [sessions, setSessions] = useState<Session[]>([
-    { id: 's1', title: 'Safety Overview', lastMessage: 'AI analysis complete', timestamp: new Date(Date.now() - 3600000) },
-    { id: 's2', title: 'HOS Violations', lastMessage: 'Review 395.8 violations...', timestamp: new Date(Date.now() - 86400000) },
-  ]);
-  const [activeSession, setActiveSession] = useState('s1');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [isThinking, setIsThinking] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+// ─── Simulated AI Responses ────────────────────────────────────────────────────
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isThinking]);
+function buildAuditResponse(): Pick<Message, 'thinkingLabel' | 'thinkingStatus' | 'assistantContent' | 'tableData'> {
+  return {
+    thinkingLabel: 'Analyzing DOT Safety Data...',
+    thinkingStatus: "I'm scanning FMCSA records and Texas region logs for Carrier 1775970.",
+    assistantContent: (
+      <p className="text-[15px] text-[#1e293b] leading-relaxed">
+        Audit complete for{' '}
+        <strong className="font-semibold text-[#0f172a]">
+          Trans-Continental Logistics Inc (DOT 1775970)
+        </strong>
+        .<br />
+        I&apos;ve identified a 14% increase in Hours-of-Service (HOS) violations near the Laredo border
+        crossing over the last 90 days.
+      </p>
+    ),
+    tableData: [
+      { violation: 'False Log Entry (395.8e)', frequency: 12, riskLevel: 'HIGH RISK' },
+      { violation: 'Local Laws (392.2C)', frequency: 4, riskLevel: 'STABLE' },
+    ],
+  };
+}
 
-  async function sendMessage(text?: string) {
-    const content = text ?? input.trim();
-    if (!content || isThinking) return;
-    setInput('');
+function generateResponse(
+  input: string
+): Pick<Message, 'thinkingLabel' | 'thinkingStatus' | 'assistantContent' | 'tableData'> {
+  const q = input.toLowerCase();
 
-    const userMsg: Message = { id: `u${Date.now()}`, role: 'user', content, timestamp: new Date() };
-    setMessages((prev) => [...prev, userMsg]);
-    setIsThinking(true);
-
-    try {
-      const res = await fetch('/api/ai/prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: content,
-          carrierContext: {
-            name: carrier.carrierName,
-            usdot: carrier.usdot,
-            overallRisk: carrier.overallRisk,
-            scoreContributions: carrier.scoreContributions,
-            aiSummary: carrier.aiSummary,
-          },
-        }),
-      });
-
-      const data = await res.json();
-      const responseText = data.response || data.text || 'I was unable to generate a response. Please try again.';
-
-      const assistantMsg: Message = { id: `a${Date.now()}`, role: 'assistant', content: responseText, timestamp: new Date() };
-      setMessages((prev) => [...prev, assistantMsg]);
-    } catch {
-      const errorMsg: Message = {
-        id: `a${Date.now()}`,
-        role: 'assistant',
-        content: `Here's an AI analysis for ${carrier.carrierName} (USDOT ${carrier.usdot}): Based on your current profile, your overall risk level is **${carrier.overallRisk}**. ${carrier.executiveMemo || carrier.aiSummary || 'I recommend focusing on your highest-scoring BASIC categories first.'}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-    } finally {
-      setIsThinking(false);
-    }
+  if (q.includes('hos') || q.includes('hours of service') || q.includes('logbook') || q.includes('eld')) {
+    return {
+      thinkingLabel: 'Querying HOS Compliance Data...',
+      thinkingStatus: 'Correlating ELD records with inspection history across all drivers.',
+      assistantContent: (
+        <p className="text-[15px] text-[#1e293b] leading-relaxed">
+          Your fleet&apos;s <strong className="font-semibold text-[#0f172a]">HOS BASIC score is 72.8</strong>,
+          which currently exceeds the 65th-percentile intervention threshold. Over the last 90 days, I&apos;ve
+          found 3 repeat offenders with a pattern of unaccounted on-duty time. Immediate ELD audit and
+          targeted driver training are recommended.
+        </p>
+      ),
+      tableData: [
+        { violation: 'Unaccounted On-Duty Time (395.8)', frequency: 9, riskLevel: 'HIGH RISK' },
+        { violation: 'Log Form & Manner (395.8a)', frequency: 5, riskLevel: 'ELEVATED' },
+        { violation: 'ELD Manual Missing (395.8k)', frequency: 3, riskLevel: 'STABLE' },
+      ],
+    };
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+  if (q.includes('maintenance') || q.includes('brake') || q.includes('tire') || q.includes('vehicle')) {
+    return {
+      thinkingLabel: 'Reviewing Vehicle Maintenance Records...',
+      thinkingStatus: 'Cross-referencing roadside inspection reports with PM schedule data.',
+      assistantContent: (
+        <p className="text-[15px] text-[#1e293b] leading-relaxed">
+          Vehicle Maintenance BASIC stands at <strong className="font-semibold text-[#0f172a]">72.8</strong>,
+          trending upward (+6.3 over 30 days). Brake-related violations account for 4 of the last 6
+          inspection findings — a pattern suggesting a systemic pre-trip inspection gap rather than
+          isolated incidents.
+        </p>
+      ),
+      tableData: [
+        { violation: 'Brakes Out of Adjustment (396.3a)', frequency: 4, riskLevel: 'HIGH RISK' },
+        { violation: 'Tire Tread Below Minimum (393.75)', frequency: 2, riskLevel: 'ELEVATED' },
+        { violation: 'Lighting (393.9)', frequency: 1, riskLevel: 'STABLE' },
+      ],
+    };
   }
 
-  function startNewSession() {
-    const newSession: Session = { id: `s${Date.now()}`, title: 'New Conversation', lastMessage: '', timestamp: new Date() };
-    setSessions((prev) => [newSession, ...prev]);
-    setActiveSession(newSession.id);
-    setMessages([]);
+  if (q.includes('csa') || q.includes('score') || q.includes('threshold') || q.includes('percentile')) {
+    return {
+      thinkingLabel: 'Fetching CSA BASIC Scores...',
+      thinkingStatus: 'Loading 24-month SMS percentile data from FMCSA portal.',
+      assistantContent: (
+        <p className="text-[15px] text-[#1e293b] leading-relaxed">
+          Your fleet&apos;s overall safety percentile is{' '}
+          <strong className="font-semibold text-[#0f172a]">54.2</strong>. Three BASICs are currently in
+          elevated territory: <strong className="font-semibold text-[#0f172a]">HOS Compliance (72.8)</strong>,{' '}
+          <strong className="font-semibold text-[#0f172a]">Vehicle Maintenance (72.8)</strong>, and{' '}
+          <strong className="font-semibold text-[#0f172a]">Hazardous Materials (68.5)</strong>. If current
+          trends continue, a compliance review is likely within 60–90 days.
+        </p>
+      ),
+      tableData: [
+        { violation: 'HOS Compliance', frequency: 73, riskLevel: 'HIGH RISK' },
+        { violation: 'Vehicle Maintenance', frequency: 73, riskLevel: 'HIGH RISK' },
+        { violation: 'Hazardous Materials', frequency: 69, riskLevel: 'ELEVATED' },
+      ],
+    };
   }
 
+  if (q.includes('report') || q.includes('pdf') || q.includes('export')) {
+    return {
+      thinkingLabel: 'Generating Safety Report...',
+      thinkingStatus: 'Compiling inspection history, BASIC scores, and trend analysis.',
+      assistantContent: (
+        <p className="text-[15px] text-[#1e293b] leading-relaxed">
+          I&apos;ve compiled a full safety report for{' '}
+          <strong className="font-semibold text-[#0f172a]">North Star Logistics LLC (DOT 2847156)</strong>.
+          The report includes a 24-month BASIC score history, top violation breakdown, driver risk rankings,
+          and a prioritized action plan. You can export this as a PDF using the button below.
+        </p>
+      ),
+    };
+  }
+
+  return {
+    thinkingLabel: 'Analyzing Fleet Safety Data...',
+    thinkingStatus: "I'm cross-referencing your inspection records and BASIC scores.",
+    assistantContent: (
+      <p className="text-[15px] text-[#1e293b] leading-relaxed">
+        Based on your fleet&apos;s current data, the highest-priority areas are{' '}
+        <strong className="font-semibold text-[#0f172a]">HOS Compliance</strong> and{' '}
+        <strong className="font-semibold text-[#0f172a]">Vehicle Maintenance</strong>, both above the
+        65th-percentile threshold. Would you like me to drill into a specific BASIC category, run a
+        driver risk analysis, or generate a compliance action plan?
+      </p>
+    ),
+  };
+}
+
+// ─── Initial session ───────────────────────────────────────────────────────────
+
+const auditData = buildAuditResponse();
+
+const INITIAL_SESSION: Session = {
+  id: 'session-1',
+  title: 'Current Assistant',
+  preview: 'Safety audit DOT #1775970',
+  messages: [
+    {
+      id: 'user-1',
+      role: 'user',
+      userText:
+        'Execute a safety audit for Carrier DOT #1775970. Cross-reference ELD logs with recent OOS inspection patterns in the Texas corridor.',
+    },
+    {
+      id: 'ai-1',
+      role: 'assistant',
+      isThinking: false,
+      ...auditData,
+    },
+  ],
+};
+
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
+function ThinkingDots({ animate }: { animate: boolean }) {
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Session sidebar */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-ax-border bg-white">
-        <div className="p-4 border-b border-ax-border">
-          <button
-            onClick={startNewSession}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-ax-border text-xs font-medium text-ax-text hover:bg-ax-border-light transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New Conversation
-          </button>
-        </div>
-        <ScrollArea className="flex-1">
-          <div className="p-2 space-y-1">
-            {sessions.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setActiveSession(s.id)}
-                className={cn(
-                  'w-full text-left p-3 rounded-lg text-xs transition-colors',
-                  activeSession === s.id ? 'bg-ax-primary/8 text-ax-primary' : 'text-ax-text-secondary hover:bg-ax-border-light'
-                )}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <MessageSquare className="h-3 w-3 shrink-0" />
-                  <span className="font-semibold truncate">{s.title}</span>
-                </div>
-                <p className="text-[10px] text-ax-text-muted truncate">{s.lastMessage}</p>
-              </button>
-            ))}
-          </div>
-        </ScrollArea>
-        <div className="p-4 border-t border-ax-border">
-          <div className="flex items-center gap-2 text-xs text-ax-text-muted">
-            <Brain className="h-3.5 w-3.5 text-ax-primary" />
-            <span>Powered by Claude</span>
-          </div>
-        </div>
-      </aside>
+    <div className="flex items-center gap-1">
+      {[0, 0.15, 0.3].map((delay, i) =>
+        animate ? (
+          <motion.div
+            key={i}
+            className="w-[4px] h-[4px] rounded-full bg-[#3b82f6]"
+            animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
+            transition={{ duration: 0.9, repeat: Infinity, delay, ease: 'easeInOut' }}
+          />
+        ) : (
+          <div key={i} className="w-[4px] h-[4px] rounded-full bg-[#3b82f6] opacity-60" />
+        )
+      )}
+    </div>
+  );
+}
 
-      {/* Chat area */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-ax-surface-secondary">
-        {/* Header */}
-        <div className="bg-white border-b border-ax-border px-6 py-3.5 flex items-center gap-3 shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-ax-primary/10 flex items-center justify-center">
-            <Brain className="h-4 w-4 text-ax-primary" />
+function RiskBadge({ level }: { level: string }) {
+  if (level === 'HIGH RISK') {
+    return (
+      <span className="inline-flex items-center justify-center bg-[#fee2e2] text-[#b91c1c] text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full whitespace-nowrap">
+        HIGH RISK
+      </span>
+    );
+  }
+  if (level === 'ELEVATED') {
+    return (
+      <span className="inline-flex items-center justify-center bg-[#fef3c7] text-[#92400e] text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full whitespace-nowrap">
+        ELEVATED
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center justify-center bg-[#f1f5f9] text-[#475569] text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full whitespace-nowrap">
+      STABLE
+    </span>
+  );
+}
+
+function ViolationTable({ data }: { data: ViolationRow[] }) {
+  return (
+    <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden w-full">
+      <div className="bg-[#f8fafc] border-b border-[#e2e8f0] grid grid-cols-[1fr_120px_130px]">
+        <div className="px-3 py-3 text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">VIOLATION</div>
+        <div className="px-3 py-3 text-[11px] font-semibold text-[#64748b] uppercase tracking-wider text-center">FREQUENCY</div>
+        <div className="px-3 py-3 text-[11px] font-semibold text-[#64748b] uppercase tracking-wider text-right">RISK LEVEL</div>
+      </div>
+      {data.map((row, i) => (
+        <div
+          key={i}
+          className={`grid grid-cols-[1fr_120px_130px] items-center ${i > 0 ? 'border-t border-[#e2e8f0]' : ''}`}
+        >
+          <div className="px-3 py-3 text-sm font-medium text-[#1e293b]">{row.violation}</div>
+          <div className="px-3 py-3 text-sm text-[#1e293b] text-center">{row.frequency}</div>
+          <div className="px-3 py-3 flex justify-end">
+            <RiskBadge level={row.riskLevel} />
           </div>
-          <div>
-            <h1 className="text-sm font-semibold text-ax-text">AI Safety Advisor</h1>
-            <p className="text-[10px] text-ax-text-muted">{carrier.carrierName} · USDOT {carrier.usdot}</p>
-          </div>
-          <Badge variant="default" className="ml-auto gap-1.5">
-            <Sparkles className="h-2.5 w-2.5" />
-            Claude AI
-          </Badge>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AssistantMessage({ msg }: { msg: Message }) {
+  return (
+    <div className="flex items-start gap-4">
+      {/* Avatar */}
+      <div className="bg-[#0f172a] rounded-xl w-8 h-8 flex items-center justify-center shrink-0 mt-6">
+        <Sparkles className="w-4 h-4 text-white" />
+      </div>
+
+      <div className="flex-1 min-w-0 space-y-4">
+        <div className="text-[11px] font-bold tracking-[0.6px] text-[#3b82f6] uppercase">
+          AXESNTRA ASSISTANT
         </div>
 
-        {/* Messages */}
-        <ScrollArea className="flex-1 px-4 py-6">
-          {messages.length === 0 ? (
-            <WelcomeScreen carrier={carrier} onSuggestion={sendMessage} />
-          ) : (
-            <div className="max-w-3xl mx-auto space-y-4">
-              <AnimatePresence>
-                {messages.map((msg) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}
-                  >
-                    {msg.role === 'assistant' && (
-                      <div className="w-6 h-6 rounded-full bg-ax-primary/10 flex items-center justify-center mr-2.5 mt-1 shrink-0">
-                        <Brain className="h-3 w-3 text-ax-primary" />
-                      </div>
-                    )}
-                    <div className={cn(
-                      'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
-                      msg.role === 'user'
-                        ? 'bg-ax-primary text-white rounded-tr-sm'
-                        : 'bg-white border border-ax-border text-ax-text rounded-tl-sm shadow-sm'
-                    )}>
-                      {msg.content.split('\n').map((line, i) => (
-                        <p key={i} className={i > 0 ? 'mt-2' : ''}>{line}</p>
-                      ))}
-                      <p className={cn('text-[10px] mt-2 opacity-60', msg.role === 'user' ? 'text-right' : '')}>
-                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+        <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 space-y-2">
+          <div className="flex items-center gap-3">
+            <ThinkingDots animate={!!msg.isThinking} />
+            <span className="text-[12px] font-semibold text-[#1e293b]">{msg.thinkingLabel}</span>
+          </div>
+          <p className="text-[12px] text-[#64748b] leading-relaxed">{msg.thinkingStatus}</p>
+        </div>
 
-              {isThinking && <ThinkingIndicator />}
-            </div>
+        <AnimatePresence>
+          {!msg.isThinking && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              className="space-y-4"
+            >
+              {msg.assistantContent}
+              {msg.tableData && <ViolationTable data={msg.tableData} />}
+            </motion.div>
           )}
-          <div ref={messagesEndRef} />
-        </ScrollArea>
-
-        {/* Input area */}
-        <div className="bg-white border-t border-ax-border p-4 shrink-0">
-          <div className="max-w-3xl mx-auto">
-            {messages.length === 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {QUICK_SUGGESTIONS.slice(0, 4).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => sendMessage(s)}
-                    className="text-[11px] px-2.5 py-1 rounded-full border border-ax-border text-ax-text-secondary hover:border-ax-primary/40 hover:text-ax-primary transition-colors"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="flex gap-2">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={`Ask anything about ${carrier.carrierName}'s safety profile…`}
-                className="min-h-[44px] max-h-32 resize-none text-sm py-2.5"
-                rows={1}
-              />
-              <button
-                onClick={() => sendMessage()}
-                disabled={!input.trim() || isThinking}
-                className={cn(
-                  'flex items-center justify-center w-10 h-10 rounded-lg transition-all shrink-0',
-                  input.trim() && !isThinking
-                    ? 'bg-ax-primary text-white hover:bg-ax-primary-hover'
-                    : 'bg-ax-border-light text-ax-text-muted cursor-not-allowed'
-                )}
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="text-[10px] text-ax-text-muted mt-2 text-center">AI responses are based on FMCSA data and may not replace professional compliance advice.</p>
-          </div>
-        </div>
+        </AnimatePresence>
       </div>
     </div>
   );
 }
 
-function ThinkingIndicator() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex justify-start"
-    >
-      <div className="w-6 h-6 rounded-full bg-ax-primary/10 flex items-center justify-center mr-2.5 mt-1 shrink-0">
-        <Brain className="h-3 w-3 text-ax-primary" />
-      </div>
-      <div className="bg-white border border-ax-border rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
-        <span className="ax-thinking-dot h-2 w-2 rounded-full bg-ax-text-muted" />
-        <span className="ax-thinking-dot h-2 w-2 rounded-full bg-ax-text-muted" />
-        <span className="ax-thinking-dot h-2 w-2 rounded-full bg-ax-text-muted" />
-      </div>
-    </motion.div>
-  );
-}
+// ─── Main Component ────────────────────────────────────────────────────────────
 
-function WelcomeScreen({ carrier, onSuggestion }: { carrier: CarrierBrief; onSuggestion: (s: string) => void }) {
-  return (
-    <div className="max-w-2xl mx-auto text-center py-8">
-      <div className="w-12 h-12 rounded-2xl bg-ax-primary/10 flex items-center justify-center mx-auto mb-4">
-        <Brain className="h-6 w-6 text-ax-primary" />
-      </div>
-      <h2 className="text-lg font-bold text-ax-text mb-2">AI Safety Advisor</h2>
-      <p className="text-sm text-ax-text-secondary mb-1">
-        I have full context on <strong>{carrier.carrierName}</strong>'s safety profile.
-      </p>
-      <p className="text-xs text-ax-text-muted mb-8">
-        USDOT {carrier.usdot} · Risk: {carrier.overallRisk}
-      </p>
+export function AiChatPage({ carrier }: AiChatPageProps) {
+  const [sessions, setSessions] = useState<Session[]>([INITIAL_SESSION]);
+  const [activeSessionId, setActiveSessionId] = useState<string>('session-1');
+  const [inputText, setInputText] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
-        {QUICK_SUGGESTIONS.map((s) => (
+  const activeSession = sessions.find(s => s.id === activeSessionId) ?? sessions[0];
+  const messages = activeSession?.messages ?? [];
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleNewSession = () => {
+    const id = `session-${Date.now()}`;
+    const newSession: Session = {
+      id,
+      title: 'New Session',
+      preview: 'Start a new conversation',
+      messages: [],
+    };
+    setSessions(prev => [newSession, ...prev]);
+    setActiveSessionId(id);
+    setInputText('');
+  };
+
+  const handleSend = () => {
+    const text = inputText.trim();
+    if (!text || isGenerating) return;
+
+    const userMsgId = `user-${Date.now()}`;
+    const aiMsgId = `ai-${Date.now()}`;
+
+    const userMsg: Message = { id: userMsgId, role: 'user', userText: text };
+    const thinkingMsg: Message = {
+      id: aiMsgId,
+      role: 'assistant',
+      isThinking: true,
+      thinkingLabel: 'Analyzing fleet safety data...',
+      thinkingStatus: `Processing your query about "${text.slice(0, 60)}${text.length > 60 ? '...' : ''}"`,
+    };
+
+    setSessions(prev =>
+      prev.map(s =>
+        s.id === activeSessionId
+          ? {
+              ...s,
+              messages: [...s.messages, userMsg, thinkingMsg],
+              title: s.messages.length === 0 ? text.slice(0, 32) + (text.length > 32 ? '...' : '') : s.title,
+              preview: text.slice(0, 50),
+            }
+          : s
+      )
+    );
+    setInputText('');
+    setIsGenerating(true);
+
+    setTimeout(() => {
+      const response = generateResponse(text);
+      setSessions(prev =>
+        prev.map(s =>
+          s.id === activeSessionId
+            ? {
+                ...s,
+                messages: s.messages.map(m =>
+                  m.id === aiMsgId ? { ...m, isThinking: false, ...response } : m
+                ),
+              }
+            : s
+        )
+      );
+      setIsGenerating(false);
+    }, 2200);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const quickSuggestions = [
+    { label: 'Generate Safety Report', query: 'Generate a full safety report for our fleet' },
+    { label: 'Compare with Peer Group', query: 'How does our fleet compare to peer carriers in our industry?' },
+    { label: 'Export to PDF', query: 'I need to export current safety data to PDF for my safety director' },
+  ];
+
+  return (
+    <div className="h-full overflow-hidden flex">
+
+      {/* Secondary Sidebar */}
+      <aside className="w-[256px] shrink-0 h-full flex flex-col bg-[#f8fafc] border-r border-[#e2e8f0]">
+        {/* Branding */}
+        <div className="px-6 pt-6 pb-1">
+          <div className="flex flex-col gap-1">
+            <span className="text-[20px] font-bold tracking-[-0.5px] text-[#0f172a] leading-7">AXESNTRA</span>
+            <span className="text-[10px] font-bold tracking-[0.5px] uppercase text-[#3b82f6]">SAFETY INTELLIGENCE</span>
+          </div>
+        </div>
+
+        {/* New Session Button */}
+        <div className="px-4 py-4">
           <button
-            key={s}
-            onClick={() => onSuggestion(s)}
-            className="p-3 rounded-xl border border-ax-border bg-white text-xs text-ax-text text-left hover:border-ax-primary/40 hover:shadow-sm transition-all"
+            onClick={handleNewSession}
+            className="w-full flex items-center justify-center gap-2 bg-[#0f172a] hover:bg-[#1e293b] text-white rounded-xl py-2.5 transition-colors shadow-sm"
           >
-            <Sparkles className="h-3 w-3 text-ax-primary mb-1" />
-            {s}
+            <Plus className="w-4 h-4" />
+            <span className="text-sm font-medium">New Session</span>
           </button>
-        ))}
+        </div>
+
+        {/* Session List */}
+        <nav className="flex-1 overflow-y-auto px-2 space-y-0.5">
+          {sessions.map(session => {
+            const active = session.id === activeSessionId;
+            return (
+              <button
+                key={session.id}
+                onClick={() => setActiveSessionId(session.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
+                  active ? 'bg-[#f1f5f9]' : 'hover:bg-[#f1f5f9]/60'
+                }`}
+              >
+                <MessageSquare className={`w-5 h-5 shrink-0 ${active ? 'text-[#3b82f6]' : 'text-[#94a3b8]'}`} />
+                <div className="flex-1 min-w-0">
+                  <div className={`text-sm truncate ${active ? 'font-semibold text-[#0f172a]' : 'font-medium text-[#64748b]'}`}>
+                    {session.title}
+                  </div>
+                  {!active && (
+                    <div className="text-[11px] text-[#94a3b8] truncate mt-0.5">{session.preview}</div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Profile */}
+        <div className="border-t border-[#e2e8f0] px-4 py-4">
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm">
+            <div className="flex items-center gap-3 p-3">
+              <div className="bg-[#f1f5f9] rounded-full w-8 h-8 flex items-center justify-center shrink-0">
+                <User className="w-4 h-4 text-[#0f172a]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] font-bold text-[#1e293b] truncate">Safety Manager</div>
+                <div className="text-[10px] text-[#64748b]">Standard Access</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 min-w-0 flex flex-col bg-white overflow-hidden">
+
+        {/* Top Header */}
+        <div className="shrink-0 h-16 bg-white border-b border-[#e2e8f0] flex items-center justify-between px-8 z-10">
+          <span className="text-sm font-semibold tracking-[0.7px] text-[#64748b] uppercase">MISSION CONTROL</span>
+          <div className="flex items-center gap-4">
+            <button className="relative w-5 h-5 flex items-center justify-center text-[#64748b] hover:text-[#0f172a] transition-colors">
+              <Bell className="w-4 h-4" />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#ef4444] rounded-full border-2 border-white" />
+            </button>
+            <button className="w-5 h-5 flex items-center justify-center text-[#64748b] hover:text-[#0f172a] transition-colors">
+              <HelpCircle className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-[800px] mx-auto px-6 pt-8 pb-4 space-y-8">
+
+            {/* Welcome */}
+            <div className="flex flex-col items-center justify-center py-8 gap-4">
+              <div className="bg-[rgba(59,130,246,0.1)] w-12 h-12 rounded-2xl flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-[#3b82f6]" />
+              </div>
+              <h2 className="text-[18px] font-bold text-[#0f172a]">AI Axesntra - ready to assist</h2>
+            </div>
+
+            {/* Conversation */}
+            {messages.map(msg => (
+              <AnimatePresence key={msg.id}>
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                >
+                  {msg.role === 'user' ? (
+                    <div className="flex justify-end">
+                      <div className="max-w-[462px] bg-[#f1f5f9] rounded-bl-2xl rounded-br-2xl rounded-tl-2xl shadow-sm px-4 py-[14px]">
+                        <p className="text-[15px] text-[#1e293b] leading-relaxed">{msg.userText}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <AssistantMessage msg={msg} />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            ))}
+
+            {/* Empty state */}
+            {messages.length === 0 && (
+              <div className="text-center py-12 space-y-3">
+                <p className="text-sm text-[#94a3b8]">
+                  No messages yet. Ask me anything about {carrier.carrierName}&apos;s safety data.
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {[
+                    'What are my highest-risk BASIC categories?',
+                    'Which drivers have the most violations?',
+                    'How close am I to an FMCSA intervention?',
+                  ].map((suggestion, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setInputText(suggestion); inputRef.current?.focus(); }}
+                      className="px-3 py-1.5 text-xs text-[#64748b] bg-[#f8fafc] border border-[#e2e8f0] rounded-full hover:bg-[#f1f5f9] hover:text-[#0f172a] transition-colors"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="shrink-0 border-t border-[#e2e8f0] bg-white px-6 py-4 space-y-3">
+          {/* Quick Suggestions */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {quickSuggestions.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => { setInputText(s.query); inputRef.current?.focus(); }}
+                className="flex items-center justify-center px-4 py-1.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-full text-[12px] font-medium text-[#64748b] hover:bg-[#f1f5f9] hover:text-[#0f172a] hover:border-[#cbd5e1] transition-all whitespace-nowrap"
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Input Row */}
+          <div className="flex items-end gap-3 bg-white border border-[#e2e8f0] rounded-2xl px-4 py-3 focus-within:border-[#94a3b8] focus-within:shadow-sm transition-all">
+            <textarea
+              ref={inputRef}
+              rows={1}
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask me anything about your fleet's safety..."
+              className="flex-1 text-sm text-[#1e293b] placeholder-[#94a3b8] resize-none focus:outline-none bg-transparent leading-relaxed max-h-32 overflow-y-auto"
+              style={{ minHeight: 24 }}
+            />
+            <div className="flex items-center gap-2 shrink-0">
+              <button className="text-[#94a3b8] hover:text-[#64748b] transition-colors p-1">
+                <Paperclip className="w-4 h-4" />
+              </button>
+              <motion.button
+                whileTap={{ scale: 0.92 }}
+                onClick={handleSend}
+                disabled={!inputText.trim() || isGenerating}
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                  inputText.trim() && !isGenerating
+                    ? 'bg-[#0f172a] hover:bg-[#1e293b] text-white shadow-sm'
+                    : 'bg-[#f1f5f9] text-[#cbd5e1] cursor-not-allowed'
+                }`}
+              >
+                <ArrowUp className="w-4 h-4" />
+              </motion.button>
+            </div>
+          </div>
+          <p className="text-[10px] text-[#94a3b8] text-center">
+            AI Axesntra may make mistakes. Verify critical compliance decisions with FMCSA records.
+          </p>
+        </div>
       </div>
     </div>
   );
