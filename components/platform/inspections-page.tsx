@@ -461,7 +461,7 @@ export function InspectionsPage({ inspections, kpis }: InspectionsPageProps) {
 
   // Derive unique states from actual carrier inspections for the filter sidebar
   const availableStates = useMemo(
-    () => [...new Set(inspections.map(i => i.location.state))].sort(),
+    () => Array.from(new Set(inspections.map(i => i.location.state))).sort(),
     [inspections]
   );
 
