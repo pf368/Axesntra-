@@ -9,6 +9,7 @@ import {
 import { Sparkline } from '@/components/platform/sparkline';
 import { cn } from '@/lib/utils';
 import type { CarrierBrief, ScoreContribution } from '@/lib/types';
+import type { CarrierInspectionsData } from '@/hooks/useCarrierInspections';
 
 export type PlatformPage =
   | 'dashboard'
@@ -26,15 +27,25 @@ interface BasicCardDef {
 }
 
 const BASIC_CARDS: BasicCardDef[] = [
-  { label: 'Unsafe Driving', pageId: 'unsafe-driving', threshold: 65, icon: Shield, iconColor: 'text-emerald-600' },
-  { label: 'Hours of Service', pageId: 'hos-compliance', threshold: 65, icon: Clock, iconColor: 'text-orange-500' },
-  { label: 'Vehicle Maintenance', pageId: 'vehicle-maintenance', threshold: 80, icon: Truck, iconColor: 'text-orange-500' },
-  { label: 'Driver Fitness', pageId: 'driver-fitness', threshold: 80, icon: Shield, iconColor: 'text-emerald-600' },
-  { label: 'Controlled Substances', pageId: 'controlled-substances', threshold: 65, icon: Zap, iconColor: 'text-emerald-600' },
-  { label: 'Crash Indicator', pageId: 'crash-indicator', threshold: 65, icon: AlertTriangle, iconColor: 'text-emerald-600' },
-  { label: 'Hazardous Materials', pageId: 'hazardous-materials', threshold: 80, icon: AlertCircle, iconColor: 'text-orange-500' },
-  { label: 'Safety Management', pageId: 'safety-management', threshold: 65, icon: Eye, iconColor: 'text-orange-500' },
+  { label: 'Unsafe Driving',       pageId: 'unsafe-driving',        threshold: 65, icon: Shield,       iconColor: 'text-emerald-600' },
+  { label: 'Hours of Service',     pageId: 'hos-compliance',         threshold: 65, icon: Clock,        iconColor: 'text-orange-500'  },
+  { label: 'Vehicle Maintenance',  pageId: 'vehicle-maintenance',    threshold: 80, icon: Truck,        iconColor: 'text-orange-500'  },
+  { label: 'Driver Fitness',       pageId: 'driver-fitness',         threshold: 80, icon: Shield,       iconColor: 'text-emerald-600' },
+  { label: 'Controlled Substances',pageId: 'controlled-substances',  threshold: 65, icon: Zap,          iconColor: 'text-emerald-600' },
+  { label: 'Crash Indicator',      pageId: 'crash-indicator',        threshold: 65, icon: AlertTriangle,iconColor: 'text-emerald-600' },
+  { label: 'Hazardous Materials',  pageId: 'hazardous-materials',    threshold: 80, icon: AlertCircle,  iconColor: 'text-orange-500'  },
+  { label: 'Safety Management',    pageId: 'safety-management',      threshold: 65, icon: Eye,          iconColor: 'text-orange-500'  },
 ];
+
+/** Match a scoreContribution to a BASIC card by keyword. */
+function findContribution(contributions: ScoreContribution[], cardLabel: string): ScoreContribution | undefined {
+  const first = cardLabel.toLowerCase().split(' ')[0];
+  return contributions.find(
+    (s) =>
+      s.category.toLowerCase().includes(first) ||
+      s.category === cardLabel
+  );
+}
 
 function getSparklineData(score: number): number[] {
   const base = Math.max(score - 15, 5);
@@ -50,46 +61,118 @@ function get30dDelta(score: number): { value: number; direction: 'up' | 'down' |
 }
 
 function getStatus(score: number, threshold: number): { label: string; color: string; bg: string } {
-  if (score >= threshold) return { label: 'Elevated', color: 'text-orange-700', bg: 'bg-orange-100' };
+  if (score >= threshold)       return { label: 'Elevated',  color: 'text-orange-700', bg: 'bg-orange-100' };
   if (score >= threshold * 0.8) return { label: 'Watchlist', color: 'text-orange-700', bg: 'bg-orange-100' };
-  return { label: 'Stable', color: 'text-emerald-700', bg: 'bg-emerald-100' };
+  return                               { label: 'Stable',    color: 'text-emerald-700',bg: 'bg-emerald-100' };
 }
+
+// ── AI Briefing helpers ─────────────────────────────────────────────────────
+
+interface BriefingItem {
+  category: string;
+  color: string;
+  content: string;
+}
+
+function buildBriefingItems(
+  contributions: ScoreContribution[],
+  inspectionData: CarrierInspectionsData
+): BriefingItem[] | null {
+  const flagged = contributions.filter((s) => {
+    if (s.score <= 0) return false; // no data — skip entirely
+    const threshold =
+      s.category.includes('Hazmat') || s.category.includes('Hazardous') ? 80 :
+      s.category.includes('Vehicle') || s.category.includes('Maintenance') ? 80 :
+      (s.category.includes('Driver') && s.category.includes('Fitness')) ? 80 : 65;
+    return s.score >= threshold;
+  });
+
+  // Fewer than 2 BASICs with data → insufficient history state
+  const withData = contributions.filter((s) => s.score > 0);
+  if (withData.length < 2) return null;
+
+  return flagged.slice(0, 3).map((s): BriefingItem => {
+    const threshold =
+      s.category.includes('Hazmat') || s.category.includes('Hazardous') ? 80 :
+      s.category.includes('Vehicle') || s.category.includes('Maintenance') ? 80 : 65;
+
+    if (s.category.includes('HOS') || s.category.includes('Hours')) {
+      return {
+        category: 'Hours of Service',
+        color: 'text-red-600',
+        content: `: HOS score of ${s.score.toFixed(1)} exceeds the 65th-percentile intervention threshold. Carriers in this band typically face compliance reviews within 60–90 days if the trend continues.`,
+      };
+    }
+    if (s.category.includes('Vehicle') || s.category.includes('Maintenance')) {
+      const brakeCount = inspectionData.rows.reduce(
+        (n, r) => n + r.violations.filter(v => v.code.startsWith('396.3')).length, 0
+      );
+      const recentCount = Math.min(inspectionData.totalCount, 6);
+      return {
+        category: 'Vehicle Maintenance',
+        color: 'text-orange-600',
+        content: `: Brake violations account for ${brakeCount} of the last ${recentCount} inspection findings. This pattern suggests a systemic pre-trip inspection gap rather than isolated incidents.`,
+      };
+    }
+    if (s.category.includes('Hazmat') || s.category.includes('Hazardous')) {
+      const ptsToThreshold = (s.score - threshold).toFixed(1);
+      return {
+        category: 'Hazardous Materials',
+        color: 'text-orange-600',
+        content: `: Hazmat score at ${s.score.toFixed(1)} — ${ptsToThreshold} points above the 80th-percentile threshold. Corrective action is recommended to arrest further deterioration.`,
+      };
+    }
+    if (s.category.includes('Driver') || s.category.includes('Fitness')) {
+      return {
+        category: 'Driver Fitness',
+        color: 'text-red-600',
+        content: `: Driver Fitness score of ${s.score.toFixed(1)} exceeds the 80th-percentile threshold. Medical certificate compliance and driver qualification file audits are the highest-leverage corrective actions.`,
+      };
+    }
+    if (s.category.includes('Crash')) {
+      return {
+        category: 'Crash Indicator',
+        color: 'text-red-600',
+        content: `: Crash Indicator score of ${s.score.toFixed(1)} exceeds the alert threshold. Implement corrective actions focused on driver behaviour and hours of service to reduce crash exposure.`,
+      };
+    }
+    return {
+      category: s.category,
+      color: 'text-red-600',
+      content: `: Score of ${s.score.toFixed(1)} exceeds the alert threshold. Active monitoring and corrective action recommended.`,
+    };
+  });
+}
+
+// ── Props ────────────────────────────────────────────────────────────────────
 
 interface HomePageProps {
   data: CarrierBrief;
   onNavigate: (page: PlatformPage) => void;
+  inspectionData: CarrierInspectionsData;
 }
 
-export function HomePage({ data, onNavigate }: HomePageProps) {
+export function HomePage({ data, onNavigate, inspectionData }: HomePageProps) {
   const axesntraScore = data.scoreContributions.length > 0
     ? data.scoreContributions.reduce((acc, s) => acc + s.score * s.weight, 0) /
       data.scoreContributions.reduce((acc, s) => acc + s.weight, 0)
     : 54.2;
 
   const needsAttention = data.scoreContributions.filter((s) => {
-    const threshold = s.category.includes('Hazmat') || s.category.includes('Hazardous') ? 80 :
-                      s.category.includes('Vehicle') || s.category.includes('Maintenance') ? 80 :
-                      s.category.includes('Driver') && s.category.includes('Fitness') ? 80 : 65;
+    if (s.score <= 0) return false;
+    const threshold =
+      s.category.includes('Hazmat') || s.category.includes('Hazardous') ? 80 :
+      s.category.includes('Vehicle') || s.category.includes('Maintenance') ? 80 :
+      (s.category.includes('Driver') && s.category.includes('Fitness')) ? 80 : 65;
     return s.score >= threshold;
   });
 
   const flaggedCount = needsAttention.length;
+  const basicsWithData = data.scoreContributions.filter((s) => s.score > 0);
+  const basicsExceedingCount = basicsWithData.filter((s) => s.score >= 65).length;
 
-  const aiInsights = needsAttention.slice(0, 3).map((s) => {
-    const threshold = s.category.includes('Hazmat') || s.category.includes('Hazardous') ? 80 : 65;
-    if (s.category.includes('HOS') || s.category.includes('Hours')) {
-      return { category: 'Hours of Service', color: 'text-red-600', content: `HOS score of ${s.score.toFixed(1)} exceeds the 65th-percentile intervention threshold. Carriers in this band typically face compliance reviews within 60–90 days if the trend continues.` };
-    }
-    if (s.category.includes('Vehicle') || s.category.includes('Maintenance')) {
-      return { category: 'Vehicle Maintenance', color: 'text-orange-600', content: `Brake violations account for 4 of the last 6 inspection findings. This pattern suggests a systemic pre-trip inspection gap rather than isolated incidents.` };
-    }
-    if (s.category.includes('Hazmat') || s.category.includes('Hazardous')) {
-      return { category: 'Hazardous Materials', color: 'text-orange-600', content: `Hazmat score trending +5.8 over 30 days. At this rate, the 80th-percentile threshold could be reached within ~90 days without corrective action.` };
-    }
-    return { category: s.category, color: 'text-red-600', content: `${s.category} score of ${s.score.toFixed(1)} exceeds the alert threshold. Active monitoring and corrective action recommended.` };
-  });
-
-  const basicsExceedingCount = data.scoreContributions.filter((s) => s.score >= 65).length;
+  // P0.2 — briefing is derived from real scores; null means insufficient data
+  const briefingItems = buildBriefingItems(data.scoreContributions, inspectionData);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -114,7 +197,9 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
           <Truck className="h-3.5 w-3.5" />
           {data.powerUnits || 142} Power Units
         </div>
-        <span className="text-xs text-ax-text-muted whitespace-nowrap">Data as of {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}, {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+        <span className="text-xs text-ax-text-muted whitespace-nowrap">
+          Data as of {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        </span>
         <div className="ml-auto shrink-0">
           <span className="text-xs font-semibold text-emerald-700 border border-emerald-300 bg-emerald-50 rounded-full px-3 py-1 whitespace-nowrap">
             USDOT Active
@@ -134,10 +219,6 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
               <p className="text-[11px] font-semibold text-ax-text-muted uppercase tracking-[0.1em] mb-4">Axesntra Score</p>
               <div className="flex items-baseline gap-2 mb-1">
                 <span className="text-5xl font-bold font-mono text-ax-text tracking-tighter">{axesntraScore.toFixed(1)}</span>
-                <span className="flex items-center gap-0.5 text-xs font-semibold text-red-500">
-                  <TrendingUp className="h-3 w-3" />
-                  3.8 vs 30D
-                </span>
               </div>
               <p className="text-xs text-ax-text-muted mb-4">Fleet safety percentile</p>
 
@@ -152,7 +233,6 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
                       : 'linear-gradient(90deg, #10b981, #f59e0b)',
                   }}
                 />
-                {/* Threshold marker */}
                 <div className="absolute top-0 bottom-0 w-0.5 bg-ax-text" style={{ left: '65%' }} />
               </div>
               <div className="flex justify-between text-[10px] text-ax-text-muted">
@@ -171,13 +251,16 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
             <div className="bg-white rounded-2xl border border-ax-border p-6">
               <div className="flex items-center justify-between mb-5">
                 <p className="text-[11px] font-semibold text-ax-text-muted uppercase tracking-[0.1em]">Needs Attention</p>
-                <span className="text-xs text-ax-text-muted">{flaggedCount} of {data.scoreContributions.length} BASICs flagged</span>
+                <span className="text-xs text-ax-text-muted">{flaggedCount} of {basicsWithData.length} BASICs flagged</span>
               </div>
 
               <div className="space-y-4">
                 {needsAttention.slice(0, 3).map((s) => {
                   const sparkData = getSparklineData(s.score);
-                  const threshold = s.category.includes('Hazmat') || s.category.includes('Hazardous') || s.category.includes('Vehicle') || s.category.includes('Maintenance') || (s.category.includes('Driver') && s.category.includes('Fitness')) ? 80 : 65;
+                  const threshold =
+                    s.category.includes('Hazmat') || s.category.includes('Hazardous') ||
+                    s.category.includes('Vehicle') || s.category.includes('Maintenance') ||
+                    (s.category.includes('Driver') && s.category.includes('Fitness')) ? 80 : 65;
                   const ptsToThreshold = s.score - threshold;
 
                   return (
@@ -202,6 +285,12 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
                     </div>
                   );
                 })}
+
+                {needsAttention.length === 0 && (
+                  <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
+                    All BASICs with data are within acceptable thresholds.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -209,19 +298,24 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
             <div className="bg-amber-50 rounded-2xl border border-amber-200 p-6">
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center">
-                  <Sparklines className="h-3 w-3 text-white" />
+                  <BrainIcon className="h-3 w-3 text-white" />
                 </div>
                 <p className="text-[11px] font-semibold text-ax-text uppercase tracking-[0.1em]">AI Safety Briefing</p>
               </div>
 
               <div className="space-y-4">
-                {aiInsights.length > 0 ? (
-                  aiInsights.map((insight, i) => (
+                {briefingItems === null ? (
+                  // P0.2 — insufficient data state
+                  <p className="text-xs text-ax-text-secondary leading-relaxed">
+                    Insufficient inspection history to generate a full briefing for {data.carrierName}. Briefing will populate once at least 2 BASIC categories have recorded data.
+                  </p>
+                ) : briefingItems.length > 0 ? (
+                  briefingItems.map((item, i) => (
                     <div key={i} className="flex items-start gap-2.5">
-                      <AlertCircle className={cn('h-4 w-4 shrink-0 mt-0.5', insight.color)} />
+                      <AlertCircle className={cn('h-4 w-4 shrink-0 mt-0.5', item.color)} />
                       <p className="text-xs text-ax-text leading-relaxed">
-                        <span className={cn('font-semibold', insight.color)}>{insight.category}</span>
-                        {insight.content}
+                        <span className={cn('font-semibold', item.color)}>{item.category}</span>
+                        {item.content}
                       </p>
                     </div>
                   ))
@@ -244,13 +338,10 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
             <span className="text-xs text-ax-text-muted">6-month trend · FMCSA SMS percentile scores</span>
           </div>
 
-          {/* BASIC Cards Grid - 4 columns */}
+          {/* BASIC Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {BASIC_CARDS.map((card, idx) => {
-              const contribution = data.scoreContributions.find(
-                (s) => s.category.toLowerCase().includes(card.label.toLowerCase().split(' ')[0]) ||
-                       s.category === card.label
-              );
+              const contribution = findContribution(data.scoreContributions, card.label);
               const score = contribution?.score ?? 0;
               const sparkData = getSparklineData(score);
               const delta = get30dDelta(score);
@@ -278,7 +369,7 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
                     </span>
                   </div>
 
-                  {/* Score row: big number + sparkline + delta */}
+                  {/* Score row */}
                   <div className="flex items-end justify-between gap-2 mb-1">
                     <div>
                       <span className="text-3xl font-bold font-mono text-ax-text tracking-tight leading-none">
@@ -286,42 +377,50 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
                       </span>
                       <p className="text-[10px] text-ax-text-muted mt-1">percentile</p>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="w-16">
-                        <Sparkline
-                          data={sparkData}
-                          color={overThreshold ? '#f59e0b' : '#10b981'}
-                          height={24}
-                        />
+                    {score > 0 && (
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="w-16">
+                          <Sparkline
+                            data={sparkData}
+                            color={overThreshold ? '#f59e0b' : '#10b981'}
+                            height={24}
+                          />
+                        </div>
+                        <span className={cn(
+                          'text-[10px] font-medium flex items-center gap-0.5',
+                          delta.direction === 'up' ? 'text-red-500' : delta.direction === 'down' ? 'text-emerald-600' : 'text-ax-text-muted'
+                        )}>
+                          {delta.direction === 'up' && <TrendingUp className="h-2.5 w-2.5" />}
+                          {delta.direction === 'down' && <TrendingDown className="h-2.5 w-2.5" />}
+                          {delta.direction === 'neutral' ? '— No change' : `${delta.direction === 'down' ? '-' : '+'}${delta.value} 30D`}
+                        </span>
                       </div>
-                      <span className={cn(
-                        'text-[10px] font-medium flex items-center gap-0.5',
-                        delta.direction === 'up' ? 'text-red-500' : delta.direction === 'down' ? 'text-emerald-600' : 'text-ax-text-muted'
-                      )}>
-                        {delta.direction === 'up' && <TrendingUp className="h-2.5 w-2.5" />}
-                        {delta.direction === 'down' && <TrendingDown className="h-2.5 w-2.5" />}
-                        {delta.direction === 'neutral' ? '— No change' : `${delta.direction === 'down' ? '-' : '+'}${delta.value} 30D`}
-                      </span>
-                    </div>
+                    )}
                   </div>
 
                   {/* Threshold progress bar */}
                   <div className="mt-3">
                     <div className="relative h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                      <div
-                        className={cn('absolute inset-y-0 left-0 rounded-full', overThreshold ? 'bg-orange-400' : 'bg-emerald-400')}
-                        style={{ width: `${Math.min((score / 100) * 100, 100)}%` }}
-                      />
+                      {score > 0 && (
+                        <div
+                          className={cn('absolute inset-y-0 left-0 rounded-full', overThreshold ? 'bg-orange-400' : 'bg-emerald-400')}
+                          style={{ width: `${Math.min((score / 100) * 100, 100)}%` }}
+                        />
+                      )}
                     </div>
                     <div className="flex items-center justify-between mt-1.5">
                       <span className="text-[10px] text-ax-text-muted">FMCSA threshold {card.threshold}</span>
-                      <span className="text-[10px] text-ax-text-muted">
-                        {overThreshold ? (
-                          <span className="text-red-600 font-semibold">+{(score - card.threshold).toFixed(1)} over threshold</span>
-                        ) : (
-                          `${ptsToThreshold.toFixed(1)} pts to threshold`
-                        )}
-                      </span>
+                      {score > 0 ? (
+                        <span className="text-[10px] text-ax-text-muted">
+                          {overThreshold ? (
+                            <span className="text-red-600 font-semibold">+{(score - card.threshold).toFixed(1)} over threshold</span>
+                          ) : (
+                            `${ptsToThreshold.toFixed(1)} pts to threshold`
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-ax-text-muted">No data</span>
+                      )}
                     </div>
                   </div>
                 </motion.button>
@@ -336,27 +435,27 @@ export function HomePage({ data, onNavigate }: HomePageProps) {
               <p className="text-[11px] font-semibold text-ax-text-muted uppercase tracking-[0.1em] mb-6">Out-of-Service Rates</p>
               <div className="space-y-6">
                 <OosRow label="Vehicle" carrierRate={data.metrics.vehicleOOS} nationalRate={23.4} />
-                <OosRow label="Driver" carrierRate={data.metrics.driverOOS} nationalRate={6.7} />
-                <OosRow label="Hazmat" carrierRate={null} nationalRate={4.4} />
+                <OosRow label="Driver"  carrierRate={data.metrics.driverOOS}  nationalRate={6.7}  />
+                <OosRow label="Hazmat"  carrierRate={null}                     nationalRate={4.4}  />
               </div>
             </div>
 
-            {/* Inspection Activity */}
+            {/* Inspection Activity — counts from useCarrierInspections (P0.1) */}
             <div className="bg-white rounded-2xl border border-ax-border p-6">
               <p className="text-[11px] font-semibold text-ax-text-muted uppercase tracking-[0.1em] mb-6">Inspection Activity</p>
               <div className="grid grid-cols-3 gap-6 text-center">
                 <div>
-                  <p className="text-4xl font-bold font-mono text-ax-text tracking-tight">14</p>
+                  <p className="text-4xl font-bold font-mono text-ax-text tracking-tight">{inspectionData.totalCount}</p>
                   <p className="text-xs text-ax-text-muted mt-1">Inspections</p>
-                  <p className="text-[10px] text-ax-text-muted">last 30 days</p>
+                  <p className="text-[10px] text-ax-text-muted">total on record</p>
                 </div>
                 <div>
-                  <p className="text-4xl font-bold font-mono text-ax-text tracking-tight">9</p>
+                  <p className="text-4xl font-bold font-mono text-ax-text tracking-tight">{inspectionData.levelICount}</p>
                   <p className="text-xs text-ax-text-muted mt-1">Level I</p>
                   <p className="text-[10px] text-ax-text-muted">full inspections</p>
                 </div>
                 <div>
-                  <p className="text-4xl font-bold font-mono text-emerald-600 tracking-tight">6</p>
+                  <p className="text-4xl font-bold font-mono text-emerald-600 tracking-tight">{inspectionData.violationsCount}</p>
                   <p className="text-xs text-ax-text-muted mt-1">Violations</p>
                   <p className="text-[10px] text-ax-text-muted">cited</p>
                 </div>
@@ -405,6 +504,6 @@ function OosRow({ label, carrierRate, nationalRate }: { label: string; carrierRa
   );
 }
 
-function Sparklines({ className }: { className?: string }) {
+function BrainIcon({ className }: { className?: string }) {
   return <Brain className={className} />;
 }

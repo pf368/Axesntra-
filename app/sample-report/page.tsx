@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CarrierBrief, CarrierListItem, InspectionWithViolations } from '@/lib/types';
-import { MOCK_CARRIER_INSPECTIONS } from '@/lib/seed-inspections-mock';
+import { CarrierBrief, CarrierListItem } from '@/lib/types';
 import { getBasicData } from '@/lib/basic-data-adapter';
+import { useCarrierInspections } from '@/hooks/useCarrierInspections';
 import { LoadingSkeleton } from '@/components/loading-skeleton';
 import { ErrorState } from '@/components/empty-state';
 
@@ -29,12 +29,12 @@ export default function PlatformPage() {
   const [data, setData] = useState<CarrierBrief | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inspections, setInspections] = useState<InspectionWithViolations[]>([]);
-  const [inspectionPercentile, setInspectionPercentile] = useState<number | undefined>();
-  const [inspectionsLoading, setInspectionsLoading] = useState(false);
 
   const [currentPage, setCurrentPage] = useState<PlatformPage>('dashboard');
   const [activeNav, setActiveNav] = useState<NavSection>('home');
+
+  // Single source of truth for all inspection-derived counts (P0.1)
+  const inspectionData = useCarrierInspections(selectedUsdot);
 
   // ── Carrier list ──
   useEffect(() => {
@@ -78,48 +78,26 @@ export default function PlatformPage() {
     fetchCarrier();
   }, [selectedUsdot]);
 
-  // ── Inspections ──
-  useEffect(() => {
-    if (!data) { setInspections([]); return; }
-    const usdot = data.usdot;
-
-    if (data.source !== 'public-live') {
-      const mockData = MOCK_CARRIER_INSPECTIONS[usdot];
-      setInspections(mockData ?? []);
-      setInspectionPercentile(undefined);
-      return;
-    }
-
-    async function fetchInspections() {
-      setInspectionsLoading(true);
-      try {
-        const response = await fetch(`/api/carriers/${usdot}/inspections`);
-        const result = await response.json();
-        if (result.data) {
-          setInspections(result.data.inspectionDetails || []);
-          setInspectionPercentile(result.data.basicPercentile);
-        }
-      } catch { /* non-fatal */ }
-      finally { setInspectionsLoading(false); }
-    }
-    fetchInspections();
-  }, [data]);
-
   // ── Nav sync ──
   function handleNavChange(nav: NavSection) {
     setActiveNav(nav);
-    if (nav === 'home') setCurrentPage('dashboard');
+    if (nav === 'home')        setCurrentPage('dashboard');
     else if (nav === 'inspections') setCurrentPage('inspections');
-    else if (nav === 'ai') setCurrentPage('ai-chat');
+    else if (nav === 'ai')     setCurrentPage('ai-chat');
   }
 
   function handleNavigate(page: PlatformPage) {
     setCurrentPage(page);
-    // Keep nav highlight in sync for top-level pages
-    if (page === 'dashboard') setActiveNav('home');
+    if (page === 'dashboard')     setActiveNav('home');
     else if (page === 'inspections') setActiveNav('inspections');
-    else if (page === 'ai-chat') setActiveNav('ai');
-    else setActiveNav('home'); // BASIC pages are sub-pages of home
+    else if (page === 'ai-chat')  setActiveNav('ai');
+    else                          setActiveNav('home'); // BASIC pages are sub-pages of home
+  }
+
+  function handleCarrierChange(usdot: string) {
+    setSelectedUsdot(usdot);
+    setCurrentPage('dashboard');
+    setActiveNav('home');
   }
 
   // ── Loading / Error states ──
@@ -148,14 +126,25 @@ export default function PlatformPage() {
   // ── BASIC page router ──
   function renderContent() {
     if (!data) return null;
-    const carrier = data;
+    const carrier = data; // explicit assignment so TypeScript can narrow the type
 
     if (currentPage === 'dashboard') {
-      return <HomePage data={carrier} onNavigate={handleNavigate} />;
+      return (
+        <HomePage
+          data={carrier}
+          onNavigate={handleNavigate}
+          inspectionData={inspectionData}
+        />
+      );
     }
 
     if (currentPage === 'inspections') {
-      return <InspectionsPage inspections={inspections} basicPercentile={inspectionPercentile} />;
+      return (
+        <InspectionsPage
+          inspections={inspectionData.rows}
+          kpis={inspectionData.kpis}
+        />
+      );
     }
 
     if (currentPage === 'ai-chat') {
@@ -170,7 +159,8 @@ export default function PlatformPage() {
     ];
 
     if (BASIC_PAGES.includes(currentPage)) {
-      const basicData = getBasicData(currentPage, carrier, inspections);
+      // RichInspection is a superset of InspectionWithViolations for getBasicData's needs
+      const basicData = getBasicData(currentPage, carrier, inspectionData.rows as unknown as Parameters<typeof getBasicData>[2]);
       const onBack = () => handleNavigate('dashboard');
 
       switch (currentPage) {
@@ -200,14 +190,15 @@ export default function PlatformPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-ax-surface-secondary font-sans">
-      {/* Left navigation */}
+      {/* Left navigation — inspection count flows from the single hook (P0.1) */}
       <LeftNav
         activeNav={activeNav}
         onNavChange={handleNavChange}
         carrierList={carrierList}
         selectedUsdot={selectedUsdot}
-        onCarrierChange={(usdot) => { setSelectedUsdot(usdot); setCurrentPage('dashboard'); setActiveNav('home'); }}
+        onCarrierChange={handleCarrierChange}
         carrierName={data.carrierName}
+        inspectionCount={inspectionData.totalCount}
       />
 
       {/* Main content */}
@@ -215,8 +206,12 @@ export default function PlatformPage() {
         {renderContent()}
       </main>
 
-      {/* Mobile bottom nav */}
-      <MobileBottomNav activeNav={activeNav} onNavChange={handleNavChange} />
+      {/* Mobile bottom nav — same count from hook (P0.1) */}
+      <MobileBottomNav
+        activeNav={activeNav}
+        onNavChange={handleNavChange}
+        inspectionCount={inspectionData.totalCount}
+      />
     </div>
   );
 }

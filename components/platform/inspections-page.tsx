@@ -25,53 +25,11 @@ import {
   ChevronRight,
   Calendar,
 } from 'lucide-react';
-import type { InspectionWithViolations } from '@/lib/types';
+import { FEATURES } from '@/config/features';
+import type { RichInspection } from '@/lib/types';
+import type { InspectionKPIs } from '@/hooks/useCarrierInspections';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-
-interface Violation {
-  code: string;
-  description: string;
-  severity: 'Critical' | 'Major' | 'Minor';
-  basicCategory: string;
-  timeWeight: number;
-  oos: boolean;
-}
-
-interface AIInsight {
-  type: string;
-  label: string;
-  description: string;
-  riskLevel: 'High' | 'Medium' | 'Low';
-  suggestedActions: string[];
-}
-
-interface Inspection {
-  id: string;
-  date: string;
-  level: 'I' | 'II' | 'III' | 'IV' | 'V' | 'VI';
-  type: 'Roadside' | 'Compliance' | 'Follow-up';
-  location: { state: string; city: string };
-  driverName: string;
-  vin: string;
-  vehicleMake: string;
-  vehicleModel: string;
-  vehicleYear: number;
-  plateNumber: string;
-  plateState: string;
-  reportNumber: string;
-  reportState: string;
-  startTime: string;
-  endTime: string;
-  facility: string;
-  violations: Violation[];
-  driverOOS: boolean;
-  vehicleOOS: boolean;
-  severityScore: number;
-  status: 'New' | 'In Progress' | 'Resolved';
-  aiInsights: AIInsight[];
-  notes: string[];
-}
 
 type SortField = 'date' | 'driverName' | 'vehicleMake' | 'violations' | 'severityScore';
 type SortDir = 'asc' | 'desc';
@@ -79,208 +37,9 @@ type SortDir = 'asc' | 'desc';
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
 interface InspectionsPageProps {
-  inspections: InspectionWithViolations[];
-  basicPercentile?: number;
+  inspections: RichInspection[];
+  kpis: InspectionKPIs;
 }
-
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-
-const INSPECTIONS: Inspection[] = [
-  {
-    id: 'INS-001',
-    date: '2025-02-28',
-    level: 'I',
-    type: 'Roadside',
-    location: { city: 'Houston', state: 'TX' },
-    driverName: 'John Smith',
-    vin: '1HGBH41JXMN109186',
-    vehicleMake: 'Freightliner',
-    vehicleModel: 'Cascadia',
-    vehicleYear: 2022,
-    plateNumber: 'ABC1234',
-    plateState: 'TX',
-    reportNumber: 'TX1022800345',
-    reportState: 'TX',
-    startTime: '14:35',
-    endTime: '15:20',
-    facility: 'I-45 Weigh Station, Houston',
-    driverOOS: true,
-    vehicleOOS: false,
-    severityScore: 8,
-    status: 'New',
-    violations: [
-      {
-        code: '396.3(a)(1)',
-        description: 'Brakes out of adjustment — service brake chamber inoperative',
-        severity: 'Critical',
-        basicCategory: 'Vehicle Maintenance',
-        timeWeight: 3,
-        oos: true,
-      },
-      {
-        code: '395.8(e)(1)',
-        description: 'False record of duty status — ELD shows unaccounted on-duty time',
-        severity: 'Major',
-        basicCategory: 'HOS Compliance',
-        timeWeight: 3,
-        oos: false,
-      },
-    ],
-    aiInsights: [
-      {
-        type: 'repeat-violation',
-        label: 'Repeat HOS Issue',
-        description: 'This driver has had 3 HOS violations in the past 6 months',
-        riskLevel: 'High',
-        suggestedActions: [
-          'Schedule HOS training immediately',
-          'Review ELD device usage and configuration',
-          'Implement weekly log audits for 90 days',
-        ],
-      },
-      {
-        type: 'high-csa-impact',
-        label: 'High CSA Impact',
-        description: 'This violation significantly impacts your CSA BASIC scores in Vehicle Maintenance and HOS',
-        riskLevel: 'High',
-        suggestedActions: [
-          'Document corrective action plan within 48 hours',
-          'File DataQ challenge if any data is inaccurate',
-        ],
-      },
-    ],
-    notes: [],
-  },
-  {
-    id: 'INS-002',
-    date: '2024-11-07',
-    level: 'II',
-    type: 'Roadside',
-    location: { city: 'New Orleans', state: 'LA' },
-    driverName: 'Maria Garcia',
-    vin: '2FMZA5142WBA12345',
-    vehicleMake: 'Peterbilt',
-    vehicleModel: '579',
-    vehicleYear: 2021,
-    plateNumber: 'XYZ5678',
-    plateState: 'LA',
-    reportNumber: 'LA1110700678',
-    reportState: 'LA',
-    startTime: '09:15',
-    endTime: '10:05',
-    facility: 'LA State Patrol Station 14',
-    driverOOS: true,
-    vehicleOOS: false,
-    severityScore: 6,
-    status: 'In Progress',
-    violations: [
-      {
-        code: '391.41(a)(2)',
-        description: 'Driver medical certificate expired — no valid CMV medical examiner certificate on file',
-        severity: 'Major',
-        basicCategory: 'Driver Fitness',
-        timeWeight: 2,
-        oos: true,
-      },
-    ],
-    aiInsights: [
-      {
-        type: 'audit-risk',
-        label: 'High Audit Risk',
-        description: 'Medical certificate violations increase the likelihood of a targeted DOT compliance audit',
-        riskLevel: 'Medium',
-        suggestedActions: [
-          'Implement automated certificate expiration tracking',
-          'Review all driver certification expiration dates this week',
-          'Establish 60-day advance renewal reminders',
-        ],
-      },
-    ],
-    notes: ['Driver provided updated medical certificate on 11/08'],
-  },
-  {
-    id: 'INS-003',
-    date: '2024-08-12',
-    level: 'I',
-    type: 'Roadside',
-    location: { city: 'Oklahoma City', state: 'OK' },
-    driverName: 'Robert Johnson',
-    vin: '3GNDA23P96S123456',
-    vehicleMake: 'Kenworth',
-    vehicleModel: 'T680',
-    vehicleYear: 2020,
-    plateNumber: 'DEF9012',
-    plateState: 'OK',
-    reportNumber: 'OK0810200912',
-    reportState: 'OK',
-    startTime: '11:45',
-    endTime: '12:30',
-    facility: 'I-40 Rest Area Mile Marker 142',
-    driverOOS: false,
-    vehicleOOS: true,
-    severityScore: 8,
-    status: 'Resolved',
-    violations: [
-      {
-        code: '393.75(a)(3)',
-        description: 'Tire tread depth below minimum requirements — front steer axle',
-        severity: 'Critical',
-        basicCategory: 'Vehicle Maintenance',
-        timeWeight: 4,
-        oos: true,
-      },
-    ],
-    aiInsights: [
-      {
-        type: 'likely-reoccur',
-        label: 'Likely to Reoccur',
-        description: 'Recurring vehicle maintenance issues suggest an inadequate preventive maintenance program',
-        riskLevel: 'High',
-        suggestedActions: [
-          'Schedule full vehicle fleet inspection within 30 days',
-          'Review PM schedule adherence across all units',
-          'Implement mandatory pre-trip tire verification checklist',
-        ],
-      },
-    ],
-    notes: ['Tires replaced immediately at nearest service center', 'Vehicle passed re-inspection same day'],
-  },
-  {
-    id: 'INS-004',
-    date: '2024-05-03',
-    level: 'III',
-    type: 'Compliance',
-    location: { city: 'Dallas', state: 'TX' },
-    driverName: 'Sarah Williams',
-    vin: '5FNRL5H40AB123456',
-    vehicleMake: 'Volvo',
-    vehicleModel: 'VNL 760',
-    vehicleYear: 2023,
-    plateNumber: 'GHI3456',
-    plateState: 'TX',
-    reportNumber: 'TX0503000456',
-    reportState: 'TX',
-    startTime: '13:20',
-    endTime: '14:10',
-    facility: 'FMCSA Office - Dallas District',
-    driverOOS: false,
-    vehicleOOS: false,
-    severityScore: 3,
-    status: 'Resolved',
-    violations: [
-      {
-        code: '395.8(k)(1)',
-        description: "Driver failing to retain or produce ELD user's manual upon request",
-        severity: 'Minor',
-        basicCategory: 'HOS Compliance',
-        timeWeight: 1,
-        oos: false,
-      },
-    ],
-    aiInsights: [],
-    notes: ['Manual provided to driver during inspection', 'Driver ELD training completed 05/05'],
-  },
-];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -302,9 +61,9 @@ const LevelBadge = ({ level }: { level: string }) => (
 
 const StatusBadge = ({ status }: { status: string }) => {
   const cfg: Record<string, string> = {
-    'New': 'bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe]',
+    'New':         'bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe]',
     'In Progress': 'bg-[#fffbeb] text-[#92400e] border-[#fde68a]',
-    'Resolved': 'bg-[#f0fdf4] text-[#166534] border-[#bbf7d0]',
+    'Resolved':    'bg-[#f0fdf4] text-[#166534] border-[#bbf7d0]',
   };
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${cfg[status] ?? ''}`}>
@@ -314,8 +73,8 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 const SeverityBadge = ({ score }: { score: number }) => {
-  const color = score >= 7 ? '#ef4444' : score >= 4 ? '#f59e0b' : '#10b981';
-  const bg = score >= 7 ? '#fef2f2' : score >= 4 ? '#fffbeb' : '#f0fdf4';
+  const color  = score >= 7 ? '#ef4444' : score >= 4 ? '#f59e0b' : '#10b981';
+  const bg     = score >= 7 ? '#fef2f2' : score >= 4 ? '#fffbeb' : '#f0fdf4';
   const border = score >= 7 ? '#fecaca' : score >= 4 ? '#fde68a' : '#bbf7d0';
   return (
     <span
@@ -339,6 +98,7 @@ function FilterSection({ title, children, defaultOpen = true }: {
     <div>
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
         className="w-full flex items-center justify-between py-2 text-[10px] font-semibold text-[#94a3b8] uppercase tracking-widest hover:text-[#64748b] transition-colors"
       >
         {title}
@@ -355,8 +115,12 @@ function CheckItem({ label, checked, onChange }: { label: string; checked: boole
   return (
     <label className="flex items-center gap-2.5 cursor-pointer group select-none">
       <div
+        role="checkbox"
+        aria-checked={checked}
+        tabIndex={0}
         onClick={onChange}
-        className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
+        onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onChange(); } }}
+        className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all focus:outline-none focus:ring-2 focus:ring-[#4f39f6]/40 ${
           checked ? 'bg-[#4f39f6] border-[#4f39f6]' : 'border-[#d1d5db] group-hover:border-[#4f39f6]'
         }`}
       >
@@ -374,8 +138,10 @@ function FilterToggle({ label, checked, onChange }: { label: string; checked: bo
     <div className="flex items-center justify-between">
       <span className="text-sm text-[#374151]">{label}</span>
       <button
+        role="switch"
+        aria-checked={checked}
         onClick={onChange}
-        className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${checked ? 'bg-[#4f39f6]' : 'bg-[#e5e7eb]'}`}
+        className={`w-9 h-5 rounded-full relative transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-[#4f39f6]/40 ${checked ? 'bg-[#4f39f6]' : 'bg-[#e5e7eb]'}`}
       >
         <div
           className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
@@ -389,7 +155,7 @@ function FilterToggle({ label, checked, onChange }: { label: string; checked: bo
 
 // ─── Detail Drawer ─────────────────────────────────────────────────────────────
 
-function DetailDrawer({ inspection, onClose }: { inspection: Inspection; onClose: () => void }) {
+function DetailDrawer({ inspection, onClose }: { inspection: RichInspection; onClose: () => void }) {
   const [moreOpen, setMoreOpen] = useState(false);
 
   return (
@@ -412,6 +178,9 @@ function DetailDrawer({ inspection, onClose }: { inspection: Inspection; onClose
           exit={{ x: '100%' }}
           transition={{ type: 'spring', stiffness: 340, damping: 32 }}
           className="fixed top-0 right-0 h-screen w-[600px] bg-white shadow-2xl z-[80] flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Inspection Details"
         >
           {/* Fixed Header */}
           <div className="shrink-0 px-6 pt-6 pb-4 border-b border-[#e5e7eb] bg-white">
@@ -423,7 +192,8 @@ function DetailDrawer({ inspection, onClose }: { inspection: Inspection; onClose
               </div>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#64748b] hover:text-[#0f172b] transition-colors shrink-0 ml-3"
+                className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#64748b] hover:text-[#0f172b] transition-colors shrink-0 ml-3 focus:outline-none focus:ring-2 focus:ring-[#4f39f6]/40"
+                aria-label="Close"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -431,12 +201,12 @@ function DetailDrawer({ inspection, onClose }: { inspection: Inspection; onClose
 
             <div className="grid grid-cols-2 gap-x-8 gap-y-3.5">
               {[
-                { Icon: User, label: 'Driver', value: inspection.driverName, mono: false },
-                { Icon: MapPin, label: 'Location', value: `${inspection.location.city}, ${inspection.location.state}`, mono: false },
-                { Icon: Hash, label: 'VIN', value: inspection.vin, mono: true },
-                { Icon: ClipboardList, label: 'Type', value: inspection.type, mono: false },
-                { Icon: Truck, label: 'Vehicle Make', value: inspection.vehicleMake, mono: false },
-                { Icon: Truck, label: 'Vehicle Model', value: `${inspection.vehicleModel} (${inspection.vehicleYear})`, mono: false },
+                { Icon: User,         label: 'Driver',        value: inspection.driverName,                                              mono: false },
+                { Icon: MapPin,       label: 'Location',      value: `${inspection.location.city}, ${inspection.location.state}`,       mono: false },
+                { Icon: Hash,         label: 'VIN',           value: inspection.vin,                                                     mono: true  },
+                { Icon: ClipboardList,label: 'Type',          value: inspection.type,                                                    mono: false },
+                { Icon: Truck,        label: 'Vehicle Make',  value: inspection.vehicleMake,                                             mono: false },
+                { Icon: Truck,        label: 'Vehicle Model', value: `${inspection.vehicleModel} (${inspection.vehicleYear})`,           mono: false },
               ].map(({ Icon, label, value, mono }) => (
                 <div key={label} className="flex items-start gap-2.5">
                   <Icon className="w-3.5 h-3.5 text-[#94a3b8] mt-1 shrink-0" />
@@ -455,7 +225,8 @@ function DetailDrawer({ inspection, onClose }: { inspection: Inspection; onClose
 
             <button
               onClick={() => setMoreOpen(!moreOpen)}
-              className="mt-4 flex items-center gap-1.5 text-xs font-medium text-[#4f39f6] hover:text-[#4338ca] transition-colors"
+              aria-expanded={moreOpen}
+              className="mt-4 flex items-center gap-1.5 text-xs font-medium text-[#4f39f6] hover:text-[#4338ca] transition-colors focus:outline-none focus:ring-2 focus:ring-[#4f39f6]/40 rounded"
             >
               {moreOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               {moreOpen ? 'Hide Details' : 'More Details'}
@@ -472,12 +243,12 @@ function DetailDrawer({ inspection, onClose }: { inspection: Inspection; onClose
                 >
                   <div className="mt-3 pt-3 border-t border-[#f1f5f9] grid grid-cols-2 gap-x-8 gap-y-3.5">
                     {[
-                      { Icon: Hash, label: 'Plate Number', value: inspection.plateNumber, mono: true },
-                      { Icon: MapPin, label: 'Plate State', value: inspection.plateState, mono: false },
-                      { Icon: FileText, label: 'Report #', value: inspection.reportNumber, mono: true },
-                      { Icon: MapPin, label: 'Report State', value: inspection.reportState, mono: false },
-                      { Icon: Clock, label: 'Start Time', value: inspection.startTime, mono: true },
-                      { Icon: Clock, label: 'End Time', value: inspection.endTime, mono: true },
+                      { Icon: Hash,         label: 'Plate Number', value: inspection.plateNumber, mono: true  },
+                      { Icon: MapPin,       label: 'Plate State',  value: inspection.plateState,  mono: false },
+                      { Icon: FileText,     label: 'Report #',     value: inspection.reportNumber, mono: true  },
+                      { Icon: MapPin,       label: 'Report State', value: inspection.reportState,  mono: false },
+                      { Icon: Clock,        label: 'Start Time',   value: inspection.startTime,    mono: true  },
+                      { Icon: Clock,        label: 'End Time',     value: inspection.endTime,      mono: true  },
                     ].map(({ Icon, label, value, mono }) => (
                       <div key={label} className="flex items-start gap-2.5">
                         <Icon className="w-3.5 h-3.5 text-[#94a3b8] mt-1 shrink-0" />
@@ -521,9 +292,9 @@ function DetailDrawer({ inspection, onClose }: { inspection: Inspection; onClose
                 <div className="space-y-4">
                   {inspection.aiInsights.map((insight, i) => {
                     const riskCfg: Record<string, string> = {
-                      High: 'bg-[#fef2f2] text-[#dc2626] border-[#fecaca]',
+                      High:   'bg-[#fef2f2] text-[#dc2626] border-[#fecaca]',
                       Medium: 'bg-[#fffbeb] text-[#92400e] border-[#fde68a]',
-                      Low: 'bg-[#f0fdf4] text-[#166534] border-[#bbf7d0]',
+                      Low:    'bg-[#f0fdf4] text-[#166534] border-[#bbf7d0]',
                     };
                     return (
                       <div key={i} className="bg-white/80 rounded-lg p-4 border border-[#ede9fe]">
@@ -560,8 +331,8 @@ function DetailDrawer({ inspection, onClose }: { inspection: Inspection; onClose
                 {inspection.violations.map((v, i) => {
                   const sevCfg: Record<string, string> = {
                     Critical: 'bg-[#fef2f2] text-[#dc2626] border-[#fecaca]',
-                    Major: 'bg-[#fffbeb] text-[#92400e] border-[#fde68a]',
-                    Minor: 'bg-[#f0fdf4] text-[#166534] border-[#bbf7d0]',
+                    Major:    'bg-[#fffbeb] text-[#92400e] border-[#fde68a]',
+                    Minor:    'bg-[#f0fdf4] text-[#166534] border-[#bbf7d0]',
                   };
                   return (
                     <div key={i} className="bg-[#f9fafb] rounded-lg border border-[#e5e7eb] p-4">
@@ -611,23 +382,33 @@ function DetailDrawer({ inspection, onClose }: { inspection: Inspection; onClose
             )}
           </div>
 
-          {/* Fixed Footer */}
-          <div className="shrink-0 px-6 py-4 border-t border-[#e5e7eb] bg-white space-y-2.5">
-            <div className="grid grid-cols-2 gap-3">
-              <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#4f39f6] hover:bg-[#4338ca] text-white rounded-lg text-sm font-medium transition-colors">
-                <ClipboardList className="w-4 h-4" />
-                Assign Task
-              </button>
-              <button className="flex items-center justify-center gap-2 px-4 py-2.5 border border-[#e5e7eb] rounded-lg text-sm font-medium text-[#374151] hover:bg-[#f8fafc] transition-colors">
-                <Check className="w-4 h-4" />
-                Mark as Reviewed
-              </button>
+          {/* Fixed Footer — actions hidden when feature flags are off */}
+          {(FEATURES.featureAssignTask || FEATURES.featureMarkReviewed || FEATURES.featureAddNote) && (
+            <div className="shrink-0 px-6 py-4 border-t border-[#e5e7eb] bg-white space-y-2.5">
+              {(FEATURES.featureAssignTask || FEATURES.featureMarkReviewed) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {FEATURES.featureAssignTask && (
+                    <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#4f39f6] hover:bg-[#4338ca] text-white rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#4f39f6]/40">
+                      <ClipboardList className="w-4 h-4" />
+                      Assign Task
+                    </button>
+                  )}
+                  {FEATURES.featureMarkReviewed && (
+                    <button className="flex items-center justify-center gap-2 px-4 py-2.5 border border-[#e5e7eb] rounded-lg text-sm font-medium text-[#374151] hover:bg-[#f8fafc] transition-colors focus:outline-none focus:ring-2 focus:ring-[#4f39f6]/40">
+                      <Check className="w-4 h-4" />
+                      Mark as Reviewed
+                    </button>
+                  )}
+                </div>
+              )}
+              {FEATURES.featureAddNote && (
+                <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-[#4f39f6] hover:bg-[#f5f3ff] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#4f39f6]/40">
+                  <MessageSquare className="w-4 h-4" />
+                  Add Note
+                </button>
+              )}
             </div>
-            <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-[#4f39f6] hover:bg-[#f5f3ff] rounded-lg transition-colors">
-              <MessageSquare className="w-4 h-4" />
-              Add Note
-            </button>
-          </div>
+          )}
         </motion.div>
       </>
     </AnimatePresence>
@@ -636,10 +417,9 @@ function DetailDrawer({ inspection, onClose }: { inspection: Inspection; onClose
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function InspectionsPage({ inspections: _inspections, basicPercentile: _basicPercentile }: InspectionsPageProps) {
+export function InspectionsPage({ inspections, kpis }: InspectionsPageProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(null);
+  const [selectedInspection, setSelectedInspection] = useState<RichInspection | null>(null);
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -670,16 +450,23 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
     setSearchQuery(''); setActiveQuickFilter(null);
   };
 
+  // KPI tiles use pre-computed counts from useCarrierInspections (always show unfiltered totals)
   const quickFilters = useMemo(() => [
-    { label: 'High Risk', count: INSPECTIONS.filter(i => i.severityScore >= 7).length },
-    { label: 'OOS', count: INSPECTIONS.filter(i => i.driverOOS || i.vehicleOOS).length },
-    { label: 'Needs Review', count: INSPECTIONS.filter(i => i.status === 'New').length },
-    { label: 'Repeat Violations', count: INSPECTIONS.filter(i => i.aiInsights.some(a => a.type === 'repeat-violation')).length },
-    { label: 'Clean Inspections', count: INSPECTIONS.filter(i => i.severityScore <= 3).length },
-  ], []);
+    { label: 'High Risk',        count: kpis.highRisk    },
+    { label: 'OOS',              count: kpis.oos         },
+    { label: 'Needs Review',     count: kpis.needsReview },
+    { label: 'Repeat Violations',count: kpis.repeat      },
+    { label: 'Clean Inspections',count: kpis.clean       },
+  ], [kpis]);
+
+  // Derive unique states from actual carrier inspections for the filter sidebar
+  const availableStates = useMemo(
+    () => [...new Set(inspections.map(i => i.location.state))].sort(),
+    [inspections]
+  );
 
   const filteredAndSorted = useMemo(() => {
-    let data = [...INSPECTIONS];
+    let data = [...inspections];
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -694,34 +481,38 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
       );
     }
 
-    if (filterLevels.length > 0) data = data.filter(i => filterLevels.includes(i.level));
-    if (filterTypes.length > 0) data = data.filter(i => filterTypes.includes(i.type));
-    if (filterStates.length > 0) data = data.filter(i => filterStates.includes(i.location.state));
-    if (filterDriverOOS) data = data.filter(i => i.driverOOS);
-    if (filterVehicleOOS) data = data.filter(i => i.vehicleOOS);
+    if (filterLevels.length > 0)       data = data.filter(i => filterLevels.includes(i.level));
+    if (filterTypes.length > 0)        data = data.filter(i => filterTypes.includes(i.type));
+    if (filterStates.length > 0)       data = data.filter(i => filterStates.includes(i.location.state));
+    if (filterDriverOOS)               data = data.filter(i => i.driverOOS);
+    if (filterVehicleOOS)              data = data.filter(i => i.vehicleOOS);
     if (filterSeverities.length > 0)
       data = data.filter(i => i.violations.some(v => filterSeverities.includes(v.severity)));
-    if (filterAINeedsAttention) data = data.filter(i => i.aiInsights.length > 0);
+    if (filterAINeedsAttention)        data = data.filter(i => i.aiInsights.length > 0);
     if (filterAIRepeatViolations)
       data = data.filter(i => i.aiInsights.some(a => a.type === 'repeat-violation'));
-    if (filterStatuses.length > 0) data = data.filter(i => filterStatuses.includes(i.status));
+    if (filterStatuses.length > 0)     data = data.filter(i => filterStatuses.includes(i.status));
 
-    if (activeQuickFilter === 'High Risk') data = data.filter(i => i.severityScore >= 7);
-    else if (activeQuickFilter === 'OOS') data = data.filter(i => i.driverOOS || i.vehicleOOS);
-    else if (activeQuickFilter === 'Needs Review') data = data.filter(i => i.status === 'New');
+    if (activeQuickFilter === 'High Risk')
+      data = data.filter(i => i.severityScore >= 7);
+    else if (activeQuickFilter === 'OOS')
+      data = data.filter(i => i.driverOOS || i.vehicleOOS);
+    else if (activeQuickFilter === 'Needs Review')
+      data = data.filter(i => i.status === 'New');
     else if (activeQuickFilter === 'Repeat Violations')
       data = data.filter(i => i.aiInsights.some(a => a.type === 'repeat-violation'));
-    else if (activeQuickFilter === 'Clean Inspections') data = data.filter(i => i.severityScore <= 3);
+    else if (activeQuickFilter === 'Clean Inspections')
+      data = data.filter(i => i.severityScore <= 3);
 
     data.sort((a, b) => {
       let valA: string | number, valB: string | number;
       switch (sortField) {
-        case 'date':          valA = a.date; valB = b.date; break;
-        case 'driverName':    valA = a.driverName; valB = b.driverName; break;
-        case 'vehicleMake':   valA = a.vehicleMake; valB = b.vehicleMake; break;
-        case 'violations':    valA = a.violations.length; valB = b.violations.length; break;
-        case 'severityScore': valA = a.severityScore; valB = b.severityScore; break;
-        default:              valA = a.date; valB = b.date;
+        case 'date':          valA = a.date;             valB = b.date;             break;
+        case 'driverName':    valA = a.driverName;       valB = b.driverName;       break;
+        case 'vehicleMake':   valA = a.vehicleMake;      valB = b.vehicleMake;      break;
+        case 'violations':    valA = a.violations.length;valB = b.violations.length;break;
+        case 'severityScore': valA = a.severityScore;    valB = b.severityScore;    break;
+        default:              valA = a.date;             valB = b.date;
       }
       if (valA < valB) return sortDir === 'asc' ? -1 : 1;
       if (valA > valB) return sortDir === 'asc' ? 1 : -1;
@@ -729,9 +520,12 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
     });
 
     return data;
-  }, [searchQuery, filterLevels, filterTypes, filterStates, filterDriverOOS, filterVehicleOOS,
-      filterSeverities, filterAINeedsAttention, filterAIRepeatViolations, filterStatuses,
-      activeQuickFilter, sortField, sortDir]);
+  }, [
+    inspections, searchQuery, filterLevels, filterTypes, filterStates,
+    filterDriverOOS, filterVehicleOOS, filterSeverities,
+    filterAINeedsAttention, filterAIRepeatViolations, filterStatuses,
+    activeQuickFilter, sortField, sortDir,
+  ]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -746,16 +540,16 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
   };
 
   const columns: { key: string; label: string; sortField?: SortField; width?: string }[] = [
-    { key: 'date',     label: 'Date',        sortField: 'date',          width: 'w-28' },
-    { key: 'level',    label: 'Level',                                    width: 'w-16' },
-    { key: 'location', label: 'Location',                                 width: 'w-36' },
-    { key: 'driver',   label: 'Driver',      sortField: 'driverName',    width: 'w-36' },
-    { key: 'vehicle',  label: 'Vehicle',     sortField: 'vehicleMake',   width: 'w-44' },
-    { key: 'viol',     label: 'Violations',  sortField: 'violations',    width: 'w-24' },
-    { key: 'oos',      label: 'OOS',                                      width: 'w-24' },
-    { key: 'severity', label: 'Severity',    sortField: 'severityScore', width: 'w-20' },
-    { key: 'ai',       label: 'AI Insights',                              width: 'w-36' },
-    { key: 'status',   label: 'Status',                                   width: 'w-28' },
+    { key: 'date',     label: 'Date',       sortField: 'date',          width: 'w-28' },
+    { key: 'level',    label: 'Level',                                   width: 'w-16' },
+    { key: 'location', label: 'Location',                                width: 'w-36' },
+    { key: 'driver',   label: 'Driver',     sortField: 'driverName',    width: 'w-36' },
+    { key: 'vehicle',  label: 'Vehicle',    sortField: 'vehicleMake',   width: 'w-44' },
+    { key: 'viol',     label: 'Violations', sortField: 'violations',    width: 'w-24' },
+    { key: 'oos',      label: 'OOS',                                     width: 'w-24' },
+    { key: 'severity', label: 'Severity',   sortField: 'severityScore', width: 'w-20' },
+    { key: 'ai',       label: 'AI Insights',                             width: 'w-36' },
+    { key: 'status',   label: 'Status',                                  width: 'w-28' },
   ];
 
   return (
@@ -787,6 +581,7 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
               <button
                 onClick={() => setSidebarOpen(false)}
                 className="p-1 rounded hover:bg-[#f1f5f9] text-[#94a3b8] hover:text-[#64748b] transition-colors"
+                aria-label="Close filters"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -816,7 +611,7 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
             <FilterSection title="Entity Filters">
               <div className="text-xs font-medium text-[#64748b] mb-2">Location / State</div>
               <div className="space-y-2">
-                {['TX', 'LA', 'OK'].map(s => (
+                {availableStates.map(s => (
                   <CheckItem key={s} label={s} checked={filterStates.includes(s)} onChange={() => setFilterStates(prev => toggleArr(prev, s))} />
                 ))}
               </div>
@@ -824,7 +619,7 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
 
             <FilterSection title="Safety & Risk">
               <div className="space-y-3 mb-3">
-                <FilterToggle label="Driver OOS" checked={filterDriverOOS} onChange={() => setFilterDriverOOS(p => !p)} />
+                <FilterToggle label="Driver OOS"  checked={filterDriverOOS}  onChange={() => setFilterDriverOOS(p => !p)}  />
                 <FilterToggle label="Vehicle OOS" checked={filterVehicleOOS} onChange={() => setFilterVehicleOOS(p => !p)} />
               </div>
               <div className="text-xs font-medium text-[#64748b] mb-2">Violation Severity</div>
@@ -846,7 +641,7 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
                 <span className="text-[10px] font-semibold text-[#6d28d9] uppercase tracking-widest">AI Insights</span>
               </div>
               <div className="space-y-2">
-                <CheckItem label="Needs Attention" checked={filterAINeedsAttention} onChange={() => setFilterAINeedsAttention(p => !p)} />
+                <CheckItem label="Needs Attention"  checked={filterAINeedsAttention}   onChange={() => setFilterAINeedsAttention(p => !p)}   />
                 <CheckItem label="Repeat Violations" checked={filterAIRepeatViolations} onChange={() => setFilterAIRepeatViolations(p => !p)} />
               </div>
             </div>
@@ -870,6 +665,7 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
             {!sidebarOpen && (
               <button
                 onClick={() => setSidebarOpen(true)}
+                aria-label="Open filters"
                 className="flex items-center gap-1.5 px-3 py-1.5 border border-[#e5e7eb] rounded-lg text-sm text-[#64748b] hover:bg-[#f8fafc] transition-colors shrink-0"
               >
                 <Filter className="w-3.5 h-3.5" />
@@ -884,6 +680,7 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
             <div className="relative">
               <button
                 onClick={() => setSavedViewsOpen(p => !p)}
+                aria-expanded={savedViewsOpen}
                 className="flex items-center gap-2 px-3 py-1.5 border border-[#e5e7eb] rounded-lg text-sm text-[#374151] hover:bg-[#f8fafc] transition-colors"
               >
                 <FileText className="w-3.5 h-3.5 text-[#94a3b8]" />
@@ -898,7 +695,7 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
                     exit={{ opacity: 0, y: -4 }}
                     className="absolute top-full left-0 mt-1 w-44 bg-white rounded-lg border border-[#e5e7eb] shadow-lg z-20 py-1"
                   >
-                    {['All Inspections', 'My Assignments', 'Critical Only', 'Unresolved'].map(v => (
+                    {['All Inspections', 'Critical Only', 'Unresolved'].map(v => (
                       <button key={v} onClick={() => setSavedViewsOpen(false)} className="w-full text-left px-4 py-2 text-sm text-[#374151] hover:bg-[#f8fafc] transition-colors">
                         {v}
                       </button>
@@ -913,10 +710,13 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
               Last 90 days
             </button>
 
-            <button className="flex items-center gap-2 px-3 py-1.5 border border-[#e5e7eb] rounded-lg text-sm text-[#374151] hover:bg-[#f8fafc] transition-colors">
-              <Download className="w-3.5 h-3.5 text-[#94a3b8]" />
-              Export
-            </button>
+            {/* Export — only rendered when feature flag is on */}
+            {FEATURES.featureExport && (
+              <button className="flex items-center gap-2 px-3 py-1.5 border border-[#e5e7eb] rounded-lg text-sm text-[#374151] hover:bg-[#f8fafc] transition-colors">
+                <Download className="w-3.5 h-3.5 text-[#94a3b8]" />
+                Export
+              </button>
+            )}
           </div>
 
           <div className="relative mb-3">
@@ -925,16 +725,17 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by driver, vehicle, DOT #, violation..."
+              placeholder="Search by driver, vehicle, VIN, violation code..."
               className="w-full pl-9 pr-4 py-2.5 text-sm border border-[#e5e7eb] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4f39f6]/20 focus:border-[#4f39f6] text-[#0f172b] placeholder-[#94a3b8] bg-white transition-all"
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#64748b] transition-colors">
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#64748b] transition-colors" aria-label="Clear search">
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
+          {/* KPI quick-filter pills */}
           <div className="flex items-center gap-2 flex-wrap">
             {quickFilters.map(pill => {
               const active = activeQuickFilter === pill.label;
@@ -944,8 +745,11 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setActiveQuickFilter(active ? null : pill.label)}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                    active ? 'bg-[#4f39f6] text-white shadow-sm shadow-[#4f39f6]/30' : 'bg-[#f1f5f9] text-[#475569] hover:bg-[#e2e8f0]'
+                  aria-pressed={active}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[#4f39f6]/40 ${
+                    active
+                      ? 'bg-[#4f39f6] text-white shadow-sm shadow-[#4f39f6]/30 ring-2 ring-[#4f39f6]'
+                      : 'bg-[#f1f5f9] text-[#475569] hover:bg-[#e2e8f0]'
                   }`}
                 >
                   {pill.label}
@@ -973,6 +777,7 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
                     key={col.key}
                     className={`text-left px-4 py-3 text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider whitespace-nowrap ${col.width ?? ''} ${col.sortField ? 'cursor-pointer hover:text-[#4f39f6] select-none' : ''}`}
                     onClick={col.sortField ? () => handleSort(col.sortField!) : undefined}
+                    aria-sort={col.sortField === sortField ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
                   >
                     <div className="flex items-center gap-1">
                       {col.label}
@@ -987,8 +792,16 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
                 <tr>
                   <td colSpan={10} className="px-8 py-16 text-center">
                     <FileText className="w-10 h-10 text-[#e2e8f0] mx-auto mb-3" />
-                    <div className="text-sm font-medium text-[#374151]">No inspections found</div>
+                    <div className="text-sm font-medium text-[#374151]">No inspections match these filters</div>
                     <div className="text-xs text-[#94a3b8] mt-1">Try adjusting your filters or search query</div>
+                    {activeFilterCount > 0 && (
+                      <button
+                        onClick={clearAllFilters}
+                        className="mt-3 text-xs text-[#4f39f6] hover:text-[#4338ca] font-medium transition-colors"
+                      >
+                        Clear filters
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -1035,7 +848,7 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
                         {(() => {
                           const cnt = ins.violations.length;
                           const color = cnt === 0 ? '#10b981' : cnt === 1 ? '#f59e0b' : '#ef4444';
-                          const bg = cnt === 0 ? '#f0fdf4' : cnt === 1 ? '#fffbeb' : '#fef2f2';
+                          const bg    = cnt === 0 ? '#f0fdf4' : cnt === 1 ? '#fffbeb' : '#fef2f2';
                           return (
                             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold" style={{ color, backgroundColor: bg }}>
                               {cnt}
@@ -1073,18 +886,18 @@ export function InspectionsPage({ inspections: _inspections, basicPercentile: _b
           </table>
         </div>
 
-        {/* Footer */}
+        {/* Footer — total matches useCarrierInspections.totalCount (P0.1) */}
         <div className="shrink-0 px-6 py-2.5 bg-white border-t border-[#f1f5f9] flex items-center justify-between">
           <span className="text-xs text-[#94a3b8]">
             Showing <span className="font-medium text-[#374151]">{filteredAndSorted.length}</span> of{' '}
-            <span className="font-medium text-[#374151]">{INSPECTIONS.length}</span> inspections
+            <span className="font-medium text-[#374151]">{inspections.length}</span> inspections
           </span>
           <div className="flex items-center gap-1">
-            <button className="p-1 rounded hover:bg-[#f8fafc] text-[#94a3b8] hover:text-[#64748b] transition-colors">
+            <button className="p-1 rounded hover:bg-[#f8fafc] text-[#94a3b8] hover:text-[#64748b] transition-colors" aria-label="Previous page">
               <ChevronLeft className="w-4 h-4" />
             </button>
             <span className="text-xs text-[#374151] px-2">Page 1 of 1</span>
-            <button className="p-1 rounded hover:bg-[#f8fafc] text-[#94a3b8] hover:text-[#64748b] transition-colors">
+            <button className="p-1 rounded hover:bg-[#f8fafc] text-[#94a3b8] hover:text-[#64748b] transition-colors" aria-label="Next page">
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

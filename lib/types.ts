@@ -200,3 +200,53 @@ export interface ApiResponse<T> {
 
 export interface CarrierData extends CarrierBrief {}
 export interface ExtendedCarrierData extends CarrierBrief {}
+
+// ── Rich Inspection Types (used by InspectionsPage and mock data) ──
+
+export interface ViolationRich {
+  code: string;
+  description: string;
+  severity: 'Critical' | 'Major' | 'Minor';
+  basicCategory: string;
+  timeWeight: number;
+  oos: boolean;
+}
+
+export interface AIInsightItem {
+  type: string;
+  label: string;
+  description: string;
+  riskLevel: 'High' | 'Medium' | 'Low';
+  suggestedActions: string[];
+}
+
+export type InspectionLevel = 'I' | 'II' | 'III' | 'IV' | 'V' | 'VI';
+export type InspectionType = 'Roadside' | 'Compliance' | 'Follow-up';
+export type InspectionStatus = 'New' | 'In Progress' | 'Resolved';
+
+export interface RichInspection {
+  id: string;
+  date: string;
+  level: InspectionLevel;
+  type: InspectionType;
+  location: { state: string; city: string };
+  driverName: string;
+  vin: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleYear: number;
+  plateNumber: string;
+  plateState: string;
+  reportNumber: string;
+  reportState: string;
+  startTime: string;
+  endTime: string;
+  facility: string;
+  violations: ViolationRich[];
+  driverOOS: boolean;
+  vehicleOOS: boolean;
+  severityScore: number;
+  status: InspectionStatus;
+  aiInsights: AIInsightItem[];
+  notes: string[];
+}

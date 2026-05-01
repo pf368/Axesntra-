@@ -1,9 +1,9 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { LayoutDashboard, ClipboardList, Sparkles, Settings, ChevronDown, Bell, Search } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Sparkles, Settings, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
+import { FEATURES } from '@/config/features';
 import type { CarrierListItem } from '@/lib/types';
 
 export type NavSection = 'home' | 'inspections' | 'ai';
@@ -12,13 +12,12 @@ interface NavItem {
   id: NavSection;
   label: string;
   icon: React.ElementType;
-  badge?: number;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'inspections', label: 'Inspections', icon: ClipboardList, badge: 14 },
-  { id: 'ai', label: 'AI Assistant', icon: Sparkles },
+  { id: 'home',        label: 'Dashboard',    icon: LayoutDashboard },
+  { id: 'inspections', label: 'Inspections',  icon: ClipboardList   },
+  { id: 'ai',          label: 'AI Assistant', icon: Sparkles        },
 ];
 
 interface LeftNavProps {
@@ -28,15 +27,17 @@ interface LeftNavProps {
   selectedUsdot: string;
   onCarrierChange: (usdot: string) => void;
   carrierName?: string;
-  alertItems?: { color: string; text: string }[];
+  inspectionCount?: number;
 }
 
-export function LeftNav({ activeNav, onNavChange, carrierList, selectedUsdot, onCarrierChange, carrierName, alertItems }: LeftNavProps) {
-  const alerts = alertItems ?? [
-    { color: 'bg-red-500', text: 'HOS exceeds threshold' },
-    { color: 'bg-amber-500', text: 'Vehicle maint. rising' },
-  ];
-
+export function LeftNav({
+  activeNav,
+  onNavChange,
+  carrierList,
+  selectedUsdot,
+  onCarrierChange,
+  inspectionCount,
+}: LeftNavProps) {
   return (
     <aside className="hidden lg:flex flex-col w-[180px] shrink-0 bg-[#fafbfc] h-screen sticky top-0 overflow-y-auto">
       {/* Brand */}
@@ -71,7 +72,7 @@ export function LeftNav({ activeNav, onNavChange, carrierList, selectedUsdot, on
       </div>
 
       {/* Navigation */}
-      <nav className="px-3 flex-1">
+      <nav className="px-3 flex-1" aria-label="Primary">
         <div className="space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const isActive = activeNav === item.id;
@@ -81,6 +82,7 @@ export function LeftNav({ activeNav, onNavChange, carrierList, selectedUsdot, on
               <button
                 key={item.id}
                 onClick={() => onNavChange(item.id)}
+                aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors text-left',
                   isActive
@@ -97,12 +99,12 @@ export function LeftNav({ activeNav, onNavChange, carrierList, selectedUsdot, on
                 )}
                 <Icon className={cn('h-4 w-4 relative z-10 shrink-0', isActive ? 'text-blue-600' : 'text-ax-text-muted')} />
                 <span className="relative z-10 flex-1">{item.label}</span>
-                {item.badge !== undefined && (
+                {item.id === 'inspections' && inspectionCount !== undefined && (
                   <span className={cn(
                     'relative z-10 text-[10px] font-semibold min-w-[20px] h-[18px] px-1 rounded flex items-center justify-center',
                     isActive ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
                   )}>
-                    {item.badge}
+                    {inspectionCount}
                   </span>
                 )}
               </button>
@@ -110,34 +112,23 @@ export function LeftNav({ activeNav, onNavChange, carrierList, selectedUsdot, on
           })}
         </div>
 
-        {/* Alerts Section */}
-        <div className="mt-8">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Bell className="h-3.5 w-3.5 text-amber-600" />
-              <span className="text-xs font-semibold text-amber-800">Alerts</span>
-              <span className="ml-auto text-[10px] font-bold text-amber-700 bg-amber-200 rounded px-1.5 py-0.5">
-                {alerts.length} new
-              </span>
-            </div>
-            <div className="space-y-1.5">
-              {alerts.map((a, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', a.color)} />
-                  <span className="text-[11px] text-amber-900">{a.text}</span>
-                </div>
-              ))}
-            </div>
+        {/* Alerts section — hidden until featureAlertsPopover ships (P2.12) */}
+        {FEATURES.featureAlertsPopover && (
+          <div className="mt-8">
+            {/* Bell popover placeholder — wired in P2.12 */}
           </div>
-        </div>
+        )}
       </nav>
 
       {/* Footer */}
       <div className="px-3 py-3 space-y-1">
-        <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-ax-text-secondary hover:text-ax-text hover:bg-gray-100 transition-colors">
-          <Settings className="h-4 w-4 text-ax-text-muted" />
-          <span>Settings</span>
-        </button>
+        {/* Settings — hidden until featureSettings ships (P1.10) */}
+        {FEATURES.featureSettings && (
+          <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-ax-text-secondary hover:text-ax-text hover:bg-gray-100 transition-colors">
+            <Settings className="h-4 w-4 text-ax-text-muted" />
+            <span>Settings</span>
+          </button>
+        )}
 
         <div className="pt-2 flex items-center gap-2 px-2">
           <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
@@ -153,22 +144,29 @@ export function LeftNav({ activeNav, onNavChange, carrierList, selectedUsdot, on
   );
 }
 
-/* Mobile bottom nav */
+/* ── Mobile bottom nav ─────────────────────────────────────────────────────── */
+
 interface MobileNavProps {
   activeNav: NavSection;
   onNavChange: (nav: NavSection) => void;
+  inspectionCount?: number;
 }
 
-export function MobileBottomNav({ activeNav, onNavChange }: MobileNavProps) {
+export function MobileBottomNav({ activeNav, onNavChange, inspectionCount }: MobileNavProps) {
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-ax-border z-40 flex">
+    <nav
+      className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-ax-border z-40 flex"
+      aria-label="Mobile navigation"
+    >
       {NAV_ITEMS.map((item) => {
         const isActive = activeNav === item.id;
         const Icon = item.icon;
+        const badge = item.id === 'inspections' ? inspectionCount : undefined;
         return (
           <button
             key={item.id}
             onClick={() => onNavChange(item.id)}
+            aria-current={isActive ? 'page' : undefined}
             className={cn(
               'flex-1 flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition-colors relative',
               isActive ? 'text-blue-600' : 'text-ax-text-muted'
@@ -183,9 +181,9 @@ export function MobileBottomNav({ activeNav, onNavChange }: MobileNavProps) {
             )}
             <div className="relative">
               <Icon className="h-5 w-5" />
-              {item.badge !== undefined && (
+              {badge !== undefined && (
                 <span className="absolute -top-1.5 -right-2 bg-red-500 text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">
-                  {item.badge > 9 ? '9+' : item.badge}
+                  {badge > 9 ? '9+' : badge}
                 </span>
               )}
             </div>

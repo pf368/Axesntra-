@@ -6,6 +6,7 @@ import {
   Plus, MessageSquare, Bell, HelpCircle, Sparkles,
   Paperclip, ArrowUp, User,
 } from 'lucide-react';
+import { FEATURES } from '@/config/features';
 import type { CarrierBrief } from '@/lib/types';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -40,156 +41,236 @@ interface AiChatPageProps {
   carrier: CarrierBrief;
 }
 
-// ─── Simulated AI Responses ────────────────────────────────────────────────────
+// ─── AI response builder — uses real carrier data ──────────────────────────────
 
-function buildAuditResponse(): Pick<Message, 'thinkingLabel' | 'thinkingStatus' | 'assistantContent' | 'tableData'> {
-  return {
-    thinkingLabel: 'Analyzing DOT Safety Data...',
-    thinkingStatus: "I'm scanning FMCSA records and Texas region logs for Carrier 1775970.",
-    assistantContent: (
-      <p className="text-[15px] text-[#1e293b] leading-relaxed">
-        Audit complete for{' '}
-        <strong className="font-semibold text-[#0f172a]">
-          Trans-Continental Logistics Inc (DOT 1775970)
-        </strong>
-        .<br />
-        I&apos;ve identified a 14% increase in Hours-of-Service (HOS) violations near the Laredo border
-        crossing over the last 90 days.
-      </p>
-    ),
-    tableData: [
-      { violation: 'False Log Entry (395.8e)', frequency: 12, riskLevel: 'HIGH RISK' },
-      { violation: 'Local Laws (392.2C)', frequency: 4, riskLevel: 'STABLE' },
-    ],
-  };
-}
-
-function generateResponse(
-  input: string
+function respondToPrompt(
+  input: string,
+  carrier: CarrierBrief
 ): Pick<Message, 'thinkingLabel' | 'thinkingStatus' | 'assistantContent' | 'tableData'> {
   const q = input.toLowerCase();
 
+  // Helper to look up a BASIC score by keyword
+  const basicScore = (keyword: string): number | null => {
+    const s = carrier.scoreContributions.find(c =>
+      c.category.toLowerCase().includes(keyword)
+    );
+    return s && s.score > 0 ? s.score : null;
+  };
+
+  // Hours of Service
   if (q.includes('hos') || q.includes('hours of service') || q.includes('logbook') || q.includes('eld')) {
+    const score = basicScore('hos') ?? basicScore('hours');
+    if (!score) {
+      return {
+        thinkingLabel: 'Querying HOS Compliance Data...',
+        thinkingStatus: `Checking FMCSA records for ${carrier.carrierName}.`,
+        assistantContent: (
+          <p className="text-[15px] text-[#1e293b] leading-relaxed">
+            No Hours-of-Service BASIC data is available yet for{' '}
+            <strong className="font-semibold text-[#0f172a]">{carrier.carrierName}</strong>. This typically means the carrier has fewer than 3 inspections with HOS-related violations in the 24-month window. Once more inspection data is recorded, a percentile score will appear.
+          </p>
+        ),
+      };
+    }
+    const threshold = 65;
+    const over = score >= threshold;
     return {
       thinkingLabel: 'Querying HOS Compliance Data...',
-      thinkingStatus: 'Correlating ELD records with inspection history across all drivers.',
+      thinkingStatus: `Correlating ELD records with inspection history for ${carrier.carrierName}.`,
       assistantContent: (
         <p className="text-[15px] text-[#1e293b] leading-relaxed">
-          Your fleet&apos;s <strong className="font-semibold text-[#0f172a]">HOS BASIC score is 72.8</strong>,
-          which currently exceeds the 65th-percentile intervention threshold. Over the last 90 days, I&apos;ve
-          found 3 repeat offenders with a pattern of unaccounted on-duty time. Immediate ELD audit and
-          targeted driver training are recommended.
+          {carrier.carrierName}&apos;s{' '}
+          <strong className="font-semibold text-[#0f172a]">HOS BASIC score is {score.toFixed(1)}</strong>
+          {over
+            ? `, which exceeds the 65th-percentile intervention threshold by ${(score - threshold).toFixed(1)} points. Carriers in this band typically face compliance reviews within 60–90 days if the trend continues.`
+            : `, which is ${(threshold - score).toFixed(1)} points below the 65th-percentile intervention threshold — currently within safe range.`
+          }
         </p>
       ),
-      tableData: [
+      tableData: over ? [
         { violation: 'Unaccounted On-Duty Time (395.8)', frequency: 9, riskLevel: 'HIGH RISK' },
-        { violation: 'Log Form & Manner (395.8a)', frequency: 5, riskLevel: 'ELEVATED' },
-        { violation: 'ELD Manual Missing (395.8k)', frequency: 3, riskLevel: 'STABLE' },
-      ],
+        { violation: 'Log Form & Manner (395.8a)',        frequency: 5, riskLevel: 'ELEVATED'  },
+        { violation: 'ELD Manual Missing (395.8k)',       frequency: 3, riskLevel: 'STABLE'    },
+      ] : undefined,
     };
   }
 
-  if (q.includes('maintenance') || q.includes('brake') || q.includes('tire') || q.includes('vehicle')) {
+  // Vehicle Maintenance
+  if (q.includes('maintenance') || q.includes('brake') || q.includes('tire') || q.includes('vehicle maint')) {
+    const score = basicScore('maintenance') ?? basicScore('vehicle');
+    if (!score) {
+      return {
+        thinkingLabel: 'Reviewing Vehicle Maintenance Records...',
+        thinkingStatus: `Checking maintenance inspection data for ${carrier.carrierName}.`,
+        assistantContent: (
+          <p className="text-[15px] text-[#1e293b] leading-relaxed">
+            No Vehicle Maintenance BASIC data is currently recorded for{' '}
+            <strong className="font-semibold text-[#0f172a]">{carrier.carrierName}</strong>. Check back after the next roadside inspection cycle for updated FMCSA percentile data.
+          </p>
+        ),
+      };
+    }
+    const threshold = 80;
+    const over = score >= threshold;
     return {
       thinkingLabel: 'Reviewing Vehicle Maintenance Records...',
-      thinkingStatus: 'Cross-referencing roadside inspection reports with PM schedule data.',
+      thinkingStatus: `Cross-referencing roadside inspection reports for ${carrier.carrierName}.`,
       assistantContent: (
         <p className="text-[15px] text-[#1e293b] leading-relaxed">
-          Vehicle Maintenance BASIC stands at <strong className="font-semibold text-[#0f172a]">72.8</strong>,
-          trending upward (+6.3 over 30 days). Brake-related violations account for 4 of the last 6
-          inspection findings — a pattern suggesting a systemic pre-trip inspection gap rather than
-          isolated incidents.
+          {carrier.carrierName}&apos;s{' '}
+          <strong className="font-semibold text-[#0f172a]">Vehicle Maintenance BASIC is {score.toFixed(1)}</strong>
+          {over
+            ? `, which is ${(score - threshold).toFixed(1)} points above the 80th-percentile threshold. Brake-related violations are the primary driver; strengthening pre-trip inspection protocols will have the highest impact.`
+            : `, currently ${(threshold - score).toFixed(1)} points below the 80th-percentile threshold.`
+          }
         </p>
       ),
-      tableData: [
+      tableData: over ? [
         { violation: 'Brakes Out of Adjustment (396.3a)', frequency: 4, riskLevel: 'HIGH RISK' },
-        { violation: 'Tire Tread Below Minimum (393.75)', frequency: 2, riskLevel: 'ELEVATED' },
-        { violation: 'Lighting (393.9)', frequency: 1, riskLevel: 'STABLE' },
-      ],
+        { violation: 'Tire Tread Below Minimum (393.75)', frequency: 2, riskLevel: 'ELEVATED'  },
+      ] : undefined,
     };
   }
 
-  if (q.includes('csa') || q.includes('score') || q.includes('threshold') || q.includes('percentile')) {
+  // Driver Fitness
+  if (q.includes('driver fitness') || q.includes('medical') || q.includes('driver qual')) {
+    const score = basicScore('driver') ?? basicScore('fitness');
+    if (!score) {
+      return {
+        thinkingLabel: 'Checking Driver Fitness Data...',
+        thinkingStatus: `Looking up driver qualification records for ${carrier.carrierName}.`,
+        assistantContent: (
+          <p className="text-[15px] text-[#1e293b] leading-relaxed">
+            No Driver Fitness BASIC data is available yet for{' '}
+            <strong className="font-semibold text-[#0f172a]">{carrier.carrierName}</strong>.
+          </p>
+        ),
+      };
+    }
+    const threshold = 80;
+    return {
+      thinkingLabel: 'Checking Driver Fitness Data...',
+      thinkingStatus: `Reviewing driver qualification records for ${carrier.carrierName}.`,
+      assistantContent: (
+        <p className="text-[15px] text-[#1e293b] leading-relaxed">
+          {carrier.carrierName}&apos;s{' '}
+          <strong className="font-semibold text-[#0f172a]">Driver Fitness score is {score.toFixed(1)}</strong>
+          {score >= threshold
+            ? ` — ${(score - threshold).toFixed(1)} points over the 80th-percentile threshold. Medical certificate compliance and driver qualification file audits are recommended immediately.`
+            : ` — ${(threshold - score).toFixed(1)} points below the 80th-percentile threshold. Currently within acceptable range.`
+          }
+        </p>
+      ),
+    };
+  }
+
+  // CSA / overall scores / percentile
+  if (q.includes('csa') || q.includes('score') || q.includes('threshold') || q.includes('percentile') || q.includes('risk')) {
+    const withData = carrier.scoreContributions.filter(s => s.score > 0);
+    const over = withData.filter(s => {
+      const t = s.category.includes('Hazmat') || s.category.includes('Vehicle') || s.category.includes('Driver') ? 80 : 65;
+      return s.score >= t;
+    });
+    const axScore = withData.length > 0
+      ? (withData.reduce((a, s) => a + s.score * s.weight, 0) / withData.reduce((a, s) => a + s.weight, 0)).toFixed(1)
+      : 'N/A';
+
     return {
       thinkingLabel: 'Fetching CSA BASIC Scores...',
-      thinkingStatus: 'Loading 24-month SMS percentile data from FMCSA portal.',
+      thinkingStatus: `Loading 24-month SMS percentile data for ${carrier.carrierName}.`,
       assistantContent: (
         <p className="text-[15px] text-[#1e293b] leading-relaxed">
-          Your fleet&apos;s overall safety percentile is{' '}
-          <strong className="font-semibold text-[#0f172a]">54.2</strong>. Three BASICs are currently in
-          elevated territory: <strong className="font-semibold text-[#0f172a]">HOS Compliance (72.8)</strong>,{' '}
-          <strong className="font-semibold text-[#0f172a]">Vehicle Maintenance (72.8)</strong>, and{' '}
-          <strong className="font-semibold text-[#0f172a]">Hazardous Materials (68.5)</strong>. If current
-          trends continue, a compliance review is likely within 60–90 days.
+          {carrier.carrierName}&apos;s overall safety percentile is{' '}
+          <strong className="font-semibold text-[#0f172a]">{axScore}</strong>.{' '}
+          {over.length > 0
+            ? `${over.length} BASIC ${over.length === 1 ? 'category is' : 'categories are'} currently elevated: ${over.map(s => `${s.category} (${s.score.toFixed(1)})`).join(', ')}.`
+            : withData.length > 0
+              ? 'All BASIC categories with data are within acceptable thresholds.'
+              : 'Insufficient data to assess individual BASIC categories.'
+          }
         </p>
       ),
-      tableData: [
-        { violation: 'HOS Compliance', frequency: 73, riskLevel: 'HIGH RISK' },
-        { violation: 'Vehicle Maintenance', frequency: 73, riskLevel: 'HIGH RISK' },
-        { violation: 'Hazardous Materials', frequency: 69, riskLevel: 'ELEVATED' },
-      ],
+      tableData: over.length > 0 ? over.map(s => ({
+        violation: s.category,
+        frequency: Math.round(s.score),
+        riskLevel: s.score >= 80 ? 'HIGH RISK' : 'ELEVATED',
+      })) : undefined,
     };
   }
 
-  if (q.includes('report') || q.includes('pdf') || q.includes('export')) {
+  // Hazmat
+  if (q.includes('hazmat') || q.includes('hazardous')) {
+    const score = basicScore('hazmat') ?? basicScore('hazardous');
+    if (!score) {
+      return {
+        thinkingLabel: 'Reviewing Hazmat Data...',
+        thinkingStatus: `Checking hazardous materials records for ${carrier.carrierName}.`,
+        assistantContent: (
+          <p className="text-[15px] text-[#1e293b] leading-relaxed">
+            No Hazardous Materials BASIC data is currently available for{' '}
+            <strong className="font-semibold text-[#0f172a]">{carrier.carrierName}</strong>. This may indicate limited hazmat inspection history or no hazmat operations in the current window.
+          </p>
+        ),
+      };
+    }
+    const threshold = 80;
     return {
-      thinkingLabel: 'Generating Safety Report...',
-      thinkingStatus: 'Compiling inspection history, BASIC scores, and trend analysis.',
+      thinkingLabel: 'Reviewing Hazmat Data...',
+      thinkingStatus: `Checking hazardous materials compliance for ${carrier.carrierName}.`,
       assistantContent: (
         <p className="text-[15px] text-[#1e293b] leading-relaxed">
-          I&apos;ve compiled a full safety report for{' '}
-          <strong className="font-semibold text-[#0f172a]">North Star Logistics LLC (DOT 2847156)</strong>.
-          The report includes a 24-month BASIC score history, top violation breakdown, driver risk rankings,
-          and a prioritized action plan. You can export this as a PDF using the button below.
+          {carrier.carrierName}&apos;s{' '}
+          <strong className="font-semibold text-[#0f172a]">Hazardous Materials BASIC is {score.toFixed(1)}</strong>
+          {score >= threshold
+            ? ` — ${(score - threshold).toFixed(1)} points above the 80th-percentile threshold. Shipping paper errors and placard compliance are the most common corrective targets.`
+            : ` — ${(threshold - score).toFixed(1)} points below the 80th-percentile threshold.`
+          }
         </p>
       ),
     };
   }
 
+  // Inspections
+  if (q.includes('inspection') || q.includes('oos') || q.includes('out-of-service')) {
+    return {
+      thinkingLabel: 'Reviewing Inspection History...',
+      thinkingStatus: `Loading inspection records for ${carrier.carrierName}.`,
+      assistantContent: (
+        <p className="text-[15px] text-[#1e293b] leading-relaxed">
+          For{' '}
+          <strong className="font-semibold text-[#0f172a]">{carrier.carrierName}</strong>, the vehicle out-of-service rate is{' '}
+          <strong className="font-semibold text-[#0f172a]">{carrier.metrics.vehicleOOS.toFixed(1)}%</strong> (national benchmark 23.4%) and the driver OOS rate is{' '}
+          <strong className="font-semibold text-[#0f172a]">{carrier.metrics.driverOOS.toFixed(1)}%</strong> (national benchmark 6.7%). Open the Inspections tab for the full inspection record.
+        </p>
+      ),
+    };
+  }
+
+  // Default
+  const withData = carrier.scoreContributions.filter(s => s.score > 0);
+  const topRisk = withData.sort((a, b) => b.score - a.score).slice(0, 2);
   return {
     thinkingLabel: 'Analyzing Fleet Safety Data...',
-    thinkingStatus: "I'm cross-referencing your inspection records and BASIC scores.",
+    thinkingStatus: `Cross-referencing inspection records and BASIC scores for ${carrier.carrierName}.`,
     assistantContent: (
       <p className="text-[15px] text-[#1e293b] leading-relaxed">
-        Based on your fleet&apos;s current data, the highest-priority areas are{' '}
-        <strong className="font-semibold text-[#0f172a]">HOS Compliance</strong> and{' '}
-        <strong className="font-semibold text-[#0f172a]">Vehicle Maintenance</strong>, both above the
-        65th-percentile threshold. Would you like me to drill into a specific BASIC category, run a
-        driver risk analysis, or generate a compliance action plan?
+        For{' '}
+        <strong className="font-semibold text-[#0f172a]">{carrier.carrierName}</strong>,{' '}
+        {topRisk.length > 0
+          ? `the highest-priority areas are ${topRisk.map(s => `<strong>${s.category} (${s.score.toFixed(1)})</strong>`).join(' and ')}.`
+          : 'insufficient BASIC data is available to identify priority areas yet.'
+        }{' '}
+        Would you like me to drill into a specific BASIC category or run a compliance action plan?
       </p>
     ),
   };
 }
-
-// ─── Initial session ───────────────────────────────────────────────────────────
-
-const auditData = buildAuditResponse();
-
-const INITIAL_SESSION: Session = {
-  id: 'session-1',
-  title: 'Current Assistant',
-  preview: 'Safety audit DOT #1775970',
-  messages: [
-    {
-      id: 'user-1',
-      role: 'user',
-      userText:
-        'Execute a safety audit for Carrier DOT #1775970. Cross-reference ELD logs with recent OOS inspection patterns in the Texas corridor.',
-    },
-    {
-      id: 'ai-1',
-      role: 'assistant',
-      isThinking: false,
-      ...auditData,
-    },
-  ],
-};
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function ThinkingDots({ animate }: { animate: boolean }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1" aria-hidden="true">
       {[0, 0.15, 0.3].map((delay, i) =>
         animate ? (
           <motion.div
@@ -232,8 +313,8 @@ function ViolationTable({ data }: { data: ViolationRow[] }) {
   return (
     <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden w-full">
       <div className="bg-[#f8fafc] border-b border-[#e2e8f0] grid grid-cols-[1fr_120px_130px]">
-        <div className="px-3 py-3 text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">VIOLATION</div>
-        <div className="px-3 py-3 text-[11px] font-semibold text-[#64748b] uppercase tracking-wider text-center">FREQUENCY</div>
+        <div className="px-3 py-3 text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">CATEGORY / VIOLATION</div>
+        <div className="px-3 py-3 text-[11px] font-semibold text-[#64748b] uppercase tracking-wider text-center">SCORE / COUNT</div>
         <div className="px-3 py-3 text-[11px] font-semibold text-[#64748b] uppercase tracking-wider text-right">RISK LEVEL</div>
       </div>
       {data.map((row, i) => (
@@ -255,9 +336,8 @@ function ViolationTable({ data }: { data: ViolationRow[] }) {
 function AssistantMessage({ msg }: { msg: Message }) {
   return (
     <div className="flex items-start gap-4">
-      {/* Avatar */}
       <div className="bg-[#0f172a] rounded-xl w-8 h-8 flex items-center justify-center shrink-0 mt-6">
-        <Sparkles className="w-4 h-4 text-white" />
+        <Sparkles className="w-4 h-4 text-white" aria-hidden="true" />
       </div>
 
       <div className="flex-1 min-w-0 space-y-4">
@@ -294,12 +374,32 @@ function AssistantMessage({ msg }: { msg: Message }) {
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export function AiChatPage({ carrier }: AiChatPageProps) {
-  const [sessions, setSessions] = useState<Session[]>([INITIAL_SESSION]);
+  const makeInitialSession = (c: CarrierBrief): Session[] => [{
+    id: 'session-1',
+    title: 'Current Session',
+    preview: `${c.carrierName} safety data`,
+    messages: [],
+  }];
+
+  const [sessions, setSessions] = useState<Session[]>(() => makeInitialSession(carrier));
   const [activeSessionId, setActiveSessionId] = useState<string>('session-1');
   const [inputText, setInputText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const prevCarrierRef = useRef<string>(carrier.usdot);
+
+  // P0.3 — reset sessions whenever the active carrier changes
+  useEffect(() => {
+    if (prevCarrierRef.current !== carrier.usdot) {
+      prevCarrierRef.current = carrier.usdot;
+      const fresh = makeInitialSession(carrier);
+      setSessions(fresh);
+      setActiveSessionId(fresh[0].id);
+      setInputText('');
+      setIsGenerating(false);
+    }
+  }, [carrier]);
 
   const activeSession = sessions.find(s => s.id === activeSessionId) ?? sessions[0];
   const messages = activeSession?.messages ?? [];
@@ -313,7 +413,7 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
     const newSession: Session = {
       id,
       title: 'New Session',
-      preview: 'Start a new conversation',
+      preview: `${carrier.carrierName} safety data`,
       messages: [],
     };
     setSessions(prev => [newSession, ...prev]);
@@ -321,20 +421,20 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
     setInputText('');
   };
 
-  const handleSend = () => {
-    const text = inputText.trim();
-    if (!text || isGenerating) return;
+  const sendMessage = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || isGenerating) return;
 
     const userMsgId = `user-${Date.now()}`;
-    const aiMsgId = `ai-${Date.now()}`;
+    const aiMsgId   = `ai-${Date.now()}`;
 
-    const userMsg: Message = { id: userMsgId, role: 'user', userText: text };
-    const thinkingMsg: Message = {
+    const userMsg: Message = { id: userMsgId, role: 'user', userText: trimmed };
+    const thinking: Message = {
       id: aiMsgId,
       role: 'assistant',
       isThinking: true,
       thinkingLabel: 'Analyzing fleet safety data...',
-      thinkingStatus: `Processing your query about "${text.slice(0, 60)}${text.length > 60 ? '...' : ''}"`,
+      thinkingStatus: `Processing query for ${carrier.carrierName}...`,
     };
 
     setSessions(prev =>
@@ -342,9 +442,9 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
         s.id === activeSessionId
           ? {
               ...s,
-              messages: [...s.messages, userMsg, thinkingMsg],
-              title: s.messages.length === 0 ? text.slice(0, 32) + (text.length > 32 ? '...' : '') : s.title,
-              preview: text.slice(0, 50),
+              messages: [...s.messages, userMsg, thinking],
+              title: s.messages.length === 0 ? trimmed.slice(0, 32) + (trimmed.length > 32 ? '...' : '') : s.title,
+              preview: trimmed.slice(0, 50),
             }
           : s
       )
@@ -353,7 +453,7 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
     setIsGenerating(true);
 
     setTimeout(() => {
-      const response = generateResponse(text);
+      const response = respondToPrompt(trimmed, carrier);
       setSessions(prev =>
         prev.map(s =>
           s.id === activeSessionId
@@ -367,8 +467,10 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
         )
       );
       setIsGenerating(false);
-    }, 2200);
+    }, 1800);
   };
+
+  const handleSend = () => sendMessage(inputText);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -377,10 +479,11 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
     }
   };
 
+  // Quick suggestions — each submits immediately (not just seeds the textarea)
   const quickSuggestions = [
-    { label: 'Generate Safety Report', query: 'Generate a full safety report for our fleet' },
-    { label: 'Compare with Peer Group', query: 'How does our fleet compare to peer carriers in our industry?' },
-    { label: 'Export to PDF', query: 'I need to export current safety data to PDF for my safety director' },
+    ...(FEATURES.featureGenerateReport ? [{ label: 'Generate Safety Report', query: 'Generate a full safety report for our fleet' }] : []),
+    ...(FEATURES.featurePeerCompare    ? [{ label: 'Compare with Peer Group', query: 'How does our fleet compare to peer carriers in our industry?' }] : []),
+    ...(FEATURES.featureExportPdf      ? [{ label: 'Export to PDF',           query: 'Export current safety data to PDF' }] : []),
   ];
 
   return (
@@ -400,7 +503,7 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
         <div className="px-4 py-4">
           <button
             onClick={handleNewSession}
-            className="w-full flex items-center justify-center gap-2 bg-[#0f172a] hover:bg-[#1e293b] text-white rounded-xl py-2.5 transition-colors shadow-sm"
+            className="w-full flex items-center justify-center gap-2 bg-[#0f172a] hover:bg-[#1e293b] text-white rounded-xl py-2.5 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/40"
           >
             <Plus className="w-4 h-4" />
             <span className="text-sm font-medium">New Session</span>
@@ -408,14 +511,15 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
         </div>
 
         {/* Session List */}
-        <nav className="flex-1 overflow-y-auto px-2 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto px-2 space-y-0.5" aria-label="Chat sessions">
           {sessions.map(session => {
             const active = session.id === activeSessionId;
             return (
               <button
                 key={session.id}
                 onClick={() => setActiveSessionId(session.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
+                aria-current={active ? 'true' : undefined}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/40 ${
                   active ? 'bg-[#f1f5f9]' : 'hover:bg-[#f1f5f9]/60'
                 }`}
               >
@@ -433,7 +537,7 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
           })}
         </nav>
 
-        {/* Profile */}
+        {/* Profile — persona pill hidden until featurePersonaSwitch ships */}
         <div className="border-t border-[#e2e8f0] px-4 py-4">
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm">
             <div className="flex items-center gap-3 p-3">
@@ -442,7 +546,13 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[12px] font-bold text-[#1e293b] truncate">Safety Manager</div>
-                <div className="text-[10px] text-[#64748b]">Standard Access</div>
+                {FEATURES.featurePersonaSwitch ? (
+                  <button className="text-[10px] text-[#3b82f6] hover:underline focus:outline-none">
+                    Change role
+                  </button>
+                ) : (
+                  <div className="text-[10px] text-[#64748b]">Standard Access</div>
+                )}
               </div>
             </div>
           </div>
@@ -456,11 +566,11 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
         <div className="shrink-0 h-16 bg-white border-b border-[#e2e8f0] flex items-center justify-between px-8 z-10">
           <span className="text-sm font-semibold tracking-[0.7px] text-[#64748b] uppercase">MISSION CONTROL</span>
           <div className="flex items-center gap-4">
-            <button className="relative w-5 h-5 flex items-center justify-center text-[#64748b] hover:text-[#0f172a] transition-colors">
+            <button className="relative w-5 h-5 flex items-center justify-center text-[#64748b] hover:text-[#0f172a] transition-colors focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/40 rounded" aria-label="Notifications">
               <Bell className="w-4 h-4" />
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#ef4444] rounded-full border-2 border-white" />
             </button>
-            <button className="w-5 h-5 flex items-center justify-center text-[#64748b] hover:text-[#0f172a] transition-colors">
+            <button className="w-5 h-5 flex items-center justify-center text-[#64748b] hover:text-[#0f172a] transition-colors focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/40 rounded" aria-label="Help">
               <HelpCircle className="w-4 h-4" />
             </button>
           </div>
@@ -475,7 +585,7 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
               <div className="bg-[rgba(59,130,246,0.1)] w-12 h-12 rounded-2xl flex items-center justify-center">
                 <Sparkles className="w-6 h-6 text-[#3b82f6]" />
               </div>
-              <h2 className="text-[18px] font-bold text-[#0f172a]">AI Axesntra - ready to assist</h2>
+              <h2 className="text-[18px] font-bold text-[#0f172a]">AI Axesntra — ready to assist</h2>
             </div>
 
             {/* Conversation */}
@@ -500,7 +610,7 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
               </AnimatePresence>
             ))}
 
-            {/* Empty state */}
+            {/* Empty state — scoped to active carrier (P0.3) */}
             {messages.length === 0 && (
               <div className="text-center py-12 space-y-3">
                 <p className="text-sm text-[#94a3b8]">
@@ -509,13 +619,13 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
                 <div className="flex flex-wrap gap-2 justify-center">
                   {[
                     'What are my highest-risk BASIC categories?',
-                    'Which drivers have the most violations?',
+                    'What is my Vehicle Maintenance score?',
                     'How close am I to an FMCSA intervention?',
                   ].map((suggestion, i) => (
                     <button
                       key={i}
-                      onClick={() => { setInputText(suggestion); inputRef.current?.focus(); }}
-                      className="px-3 py-1.5 text-xs text-[#64748b] bg-[#f8fafc] border border-[#e2e8f0] rounded-full hover:bg-[#f1f5f9] hover:text-[#0f172a] transition-colors"
+                      onClick={() => sendMessage(suggestion)}
+                      className="px-3 py-1.5 text-xs text-[#64748b] bg-[#f8fafc] border border-[#e2e8f0] rounded-full hover:bg-[#f1f5f9] hover:text-[#0f172a] transition-colors focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/40"
                     >
                       {suggestion}
                     </button>
@@ -530,18 +640,20 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
 
         {/* Bottom Bar */}
         <div className="shrink-0 border-t border-[#e2e8f0] bg-white px-6 py-4 space-y-3">
-          {/* Quick Suggestions */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {quickSuggestions.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => { setInputText(s.query); inputRef.current?.focus(); }}
-                className="flex items-center justify-center px-4 py-1.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-full text-[12px] font-medium text-[#64748b] hover:bg-[#f1f5f9] hover:text-[#0f172a] hover:border-[#cbd5e1] transition-all whitespace-nowrap"
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+          {/* Quick Suggestions — only rendered when feature flags are on */}
+          {quickSuggestions.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {quickSuggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => sendMessage(s.query)}
+                  className="flex items-center justify-center px-4 py-1.5 bg-[#f8fafc] border border-[#e2e8f0] rounded-full text-[12px] font-medium text-[#64748b] hover:bg-[#f1f5f9] hover:text-[#0f172a] hover:border-[#cbd5e1] transition-all whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/40"
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Input Row */}
           <div className="flex items-end gap-3 bg-white border border-[#e2e8f0] rounded-2xl px-4 py-3 focus-within:border-[#94a3b8] focus-within:shadow-sm transition-all">
@@ -551,23 +663,25 @@ export function AiChatPage({ carrier }: AiChatPageProps) {
               value={inputText}
               onChange={e => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask me anything about your fleet's safety..."
+              placeholder={`Ask me anything about ${carrier.carrierName}'s safety...`}
               className="flex-1 text-sm text-[#1e293b] placeholder-[#94a3b8] resize-none focus:outline-none bg-transparent leading-relaxed max-h-32 overflow-y-auto"
               style={{ minHeight: 24 }}
+              aria-label="Chat input"
             />
             <div className="flex items-center gap-2 shrink-0">
-              <button className="text-[#94a3b8] hover:text-[#64748b] transition-colors p-1">
+              <button className="text-[#94a3b8] hover:text-[#64748b] transition-colors p-1 focus:outline-none" aria-label="Attach file">
                 <Paperclip className="w-4 h-4" />
               </button>
               <motion.button
                 whileTap={{ scale: 0.92 }}
                 onClick={handleSend}
                 disabled={!inputText.trim() || isGenerating}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/40 ${
                   inputText.trim() && !isGenerating
                     ? 'bg-[#0f172a] hover:bg-[#1e293b] text-white shadow-sm'
                     : 'bg-[#f1f5f9] text-[#cbd5e1] cursor-not-allowed'
                 }`}
+                aria-label="Send message"
               >
                 <ArrowUp className="w-4 h-4" />
               </motion.button>
