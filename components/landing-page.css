@@ -22,19 +22,19 @@
 
 /* ─── Landing Page Root ──────────────────────────────────────────────────────── */
 .landing-page {
-  /* Signal theme */
-  --bg: #06070a;
-  --bg1: #0c0e14;
-  --bg2: #121521;
-  --bg3: #1a1f2e;
-  --border: rgba(0, 116, 255, 0.14);
-  --border-bright: rgba(0, 212, 255, 0.32);
-  --text: #ffffff;
-  --text-muted: #8a98ad;
-  --text-dim: #5b6679;
-  --blue: #0074ff;
-  --blue-bright: #00d4ff;
-  --blue-glow: rgba(0, 116, 255, 0.35);
+  /* Signal theme — light mode */
+  --bg: #f5f8fc;
+  --bg1: #ffffff;
+  --bg2: #eef3fb;
+  --bg3: #dde7f5;
+  --border: rgba(10, 18, 38, 0.10);
+  --border-bright: rgba(0, 116, 255, 0.35);
+  --text: #0a1226;
+  --text-muted: #48587a;
+  --text-dim: #7c8aa8;
+  --blue: #0058d6;
+  --blue-bright: #003fa6;
+  --blue-glow: rgba(0, 116, 255, 0.18);
   --blue-dim: rgba(0, 116, 255, 0.25);
   --green: oklch(65% 0.15 145);
   --green-dim: oklch(50% 0.1 145 / 0.3);
