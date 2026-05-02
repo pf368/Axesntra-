@@ -1,0 +1,284 @@
+/* ─── CSS Property Registration ─────────────────────────────────────────────── */
+@property --glow-hue {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 220;
+}
+@property --glow-bg-x {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@property --glow-bg-y {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@property --glow-rotate {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+/* ─── Landing Page Root ──────────────────────────────────────────────────────── */
+.landing-page {
+  /* Signal theme */
+  --bg: #06070a;
+  --bg1: #0c0e14;
+  --bg2: #121521;
+  --bg3: #1a1f2e;
+  --border: rgba(0, 116, 255, 0.14);
+  --border-bright: rgba(0, 212, 255, 0.32);
+  --text: #ffffff;
+  --text-muted: #8a98ad;
+  --text-dim: #5b6679;
+  --blue: #0074ff;
+  --blue-bright: #00d4ff;
+  --blue-glow: rgba(0, 116, 255, 0.35);
+  --blue-dim: rgba(0, 116, 255, 0.25);
+  --green: oklch(65% 0.15 145);
+  --green-dim: oklch(50% 0.1 145 / 0.3);
+  --red: oklch(58% 0.18 25);
+  --red-dim: oklch(45% 0.12 25 / 0.3);
+  --amber: oklch(68% 0.16 65);
+  --amber-dim: oklch(50% 0.1 65 / 0.3);
+  --lp-font: var(--font-inter-tight, var(--font-dm-sans, sans-serif));
+  --lp-mono: var(--font-jetbrains-mono, monospace);
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--lp-font);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────────── */
+.landing-page ::-webkit-scrollbar { width: 4px; }
+.landing-page ::-webkit-scrollbar-track { background: var(--bg); }
+.landing-page ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+/* ─── Utilities ──────────────────────────────────────────────────────────────── */
+.landing-page .lp-section { padding: 96px 0; }
+.landing-page .lp-container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+.landing-page .lp-section-label {
+  font-family: var(--lp-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 12px;
+  display: block;
+}
+.landing-page .lp-section-title {
+  font-size: clamp(28px, 3.5vw, 44px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.landing-page .lp-section-sub {
+  font-size: 17px;
+  color: var(--text-muted);
+  max-width: 600px;
+  line-height: 1.7;
+}
+.landing-page .lp-mono { font-family: var(--lp-mono); }
+
+/* ─── Buttons ────────────────────────────────────────────────────────────────── */
+.landing-page .lp-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--blue);
+  color: #fff;
+  font-family: var(--lp-font);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 22px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.landing-page .lp-btn-primary:hover {
+  background: var(--blue-bright);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px var(--blue-glow);
+}
+.landing-page .lp-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--lp-font);
+  font-size: 14px;
+  font-weight: 400;
+  padding: 10px 22px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+.landing-page .lp-btn-secondary:hover {
+  border-color: var(--border-bright);
+  color: var(--text);
+  background: var(--bg2);
+}
+
+/* ─── Risk Badges ────────────────────────────────────────────────────────────── */
+.landing-page .risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: var(--lp-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.landing-page .risk-high {
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid oklch(58% 0.18 25 / 0.3);
+}
+.landing-page .risk-elevated {
+  background: var(--amber-dim);
+  color: var(--amber);
+  border: 1px solid oklch(68% 0.16 65 / 0.3);
+}
+.landing-page .risk-low {
+  background: var(--green-dim);
+  color: var(--green);
+  border: 1px solid oklch(65% 0.15 145 / 0.3);
+}
+
+/* ─── BASIC Bar ──────────────────────────────────────────────────────────────── */
+.landing-page .basic-bar-track {
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.landing-page .basic-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+/* ─── Tab Buttons ────────────────────────────────────────────────────────────── */
+.landing-page .tab-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--lp-font);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.landing-page .tab-btn.active {
+  background: var(--bg2);
+  border-color: var(--border);
+  color: var(--text);
+}
+.landing-page .tab-btn:hover:not(.active) {
+  color: var(--text);
+}
+
+/* ─── Glow Card ──────────────────────────────────────────────────────────────── */
+.landing-page .glow-card {
+  --glow-radius: 14px;
+  --glow-border: 2px;
+  --glow-bg-size: 1.6;
+  --glow-anim-speed: 7s;
+  --glow-hue-base: 220;
+  --glow-hue-range: 60;
+  position: relative;
+  border-radius: var(--glow-radius);
+  isolation: isolate;
+  height: 100%;
+}
+.landing-page .glow-card::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--glow-border) * -1);
+  border-radius: calc(var(--glow-radius) + var(--glow-border));
+  z-index: -1;
+  background: radial-gradient(
+    35% 35% at calc(var(--glow-bg-x) * 1%) calc(var(--glow-bg-y) * 1%),
+    hsl(calc(var(--glow-hue-base) + sin(var(--glow-hue) * 1deg) * var(--glow-hue-range)) 95% 70%) 0%,
+    hsl(calc(var(--glow-hue-base) + cos(var(--glow-hue) * 1deg) * var(--glow-hue-range)) 90% 55%) calc(20% * var(--glow-bg-size)),
+    hsl(calc(var(--glow-hue-base) + sin(var(--glow-hue) * 1deg) * var(--glow-hue-range)) 80% 40%) calc(40% * var(--glow-bg-size)),
+    transparent 100%
+  );
+  animation: lp-glow-rotate-bg var(--glow-anim-speed) linear infinite,
+             lp-glow-hue var(--glow-anim-speed) linear infinite;
+}
+.landing-page .glow-card::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--glow-radius);
+  z-index: -2;
+  filter: blur(22px);
+  opacity: 0.45;
+  background: conic-gradient(
+    from calc(var(--glow-rotate) * 1deg),
+    hsl(calc(var(--glow-hue-base) - 20) 95% 60%),
+    hsl(calc(var(--glow-hue-base) + 30) 95% 65%),
+    hsl(calc(var(--glow-hue-base) + 60) 95% 60%),
+    hsl(calc(var(--glow-hue-base) - 20) 95% 60%)
+  );
+  animation: lp-glow-spin var(--glow-anim-speed) linear infinite;
+}
+.landing-page .glow-card > * {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  border-radius: calc(var(--glow-radius) - 1px);
+  overflow: hidden;
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────────── */
+.landing-page .fade-up { animation: lp-fadeUp 0.5s ease forwards; }
+
+@keyframes lp-fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes lp-pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+@keyframes lp-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes lp-glow-rotate-bg {
+  0%   { --glow-bg-x: 10; --glow-bg-y: 10; }
+  25%  { --glow-bg-x: 90; --glow-bg-y: 15; }
+  50%  { --glow-bg-x: 90; --glow-bg-y: 90; }
+  75%  { --glow-bg-x: 10; --glow-bg-y: 90; }
+  100% { --glow-bg-x: 10; --glow-bg-y: 10; }
+}
+@keyframes lp-glow-hue {
+  from { --glow-hue: 0; }
+  to   { --glow-hue: 360; }
+}
+@keyframes lp-glow-spin {
+  from { --glow-rotate: 0; }
+  to   { --glow-rotate: 360; }
+}

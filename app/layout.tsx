@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { DM_Sans, JetBrains_Mono } from 'next/font/google';
+import { DM_Sans, JetBrains_Mono, Inter_Tight } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { LayoutWrapper } from '@/components/layout-wrapper';
@@ -18,6 +18,13 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
+const interTight = Inter_Tight({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-inter-tight',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   title: 'Axesntra | Carrier Intelligence Platform',
   description: 'Axesntra helps insurance, freight, and transportation teams screen carriers, analyze safety trends, and identify operational risk.',
@@ -29,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable} ${interTight.variable}`}>
       <body className="font-sans">
         <AuthProvider>
           <LayoutWrapper>{children}</LayoutWrapper>
