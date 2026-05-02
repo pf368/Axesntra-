@@ -491,17 +491,17 @@ const Hero = () => {
             <div style={{ textAlign: 'left' }}>
               <h1 style={{ fontSize: 'clamp(40px, 4.6vw, 64px)', fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 1.04, marginBottom: 22, color: t('var(--text)', '#ffffff'), transition: 'color 0.8s ease' }}>
                 DOT violations happen.<br />
-                <span style={{ color: t('var(--blue)', '#60b0ff'), transition: 'color 0.8s ease' }}>Axesntra tells you exactly what to do next.</span>
+                <span style={{ color: '#ffffff', transition: 'color 0.8s ease' }}>Axesntra tells you exactly what to do next.</span>
               </h1>
-              <p style={{ fontSize: 17, color: t('var(--text-muted)', 'rgba(200,215,240,0.85)'), marginBottom: 36, lineHeight: 1.65, maxWidth: 520, transition: 'color 0.8s ease' }}>
+              <p style={{ fontSize: 17, color: t('rgba(255,255,255,0.85)', 'rgba(200,215,240,0.85)'), marginBottom: 36, lineHeight: 1.65, maxWidth: 520, transition: 'color 0.8s ease' }}>
                 Axesntra reads FMCSA, CSA, SAFER, inspection, violation, crash, and BASIC data — then explains what matters in plain English so safety teams can act faster.
               </p>
               <div style={{ display: 'flex', gap: 12 }}>
                 <Link href="/early-access" className="lp-btn-primary" style={{ fontSize: 15, padding: '13px 28px' }} {...btnHandlers}>
                   Get Early Access <Icon name="arrow" size={14} color="white" />
                 </Link>
-                <Link href="/sample-report" className="lp-btn-secondary" style={{ fontSize: 15, padding: '13px 26px', borderColor: dark ? 'rgba(255,255,255,0.3)' : undefined, color: dark ? 'rgba(220,230,255,0.9)' : undefined, transition: 'all 0.3s ease' }} {...btnHandlers}>
-                  <Icon name="zap" size={14} color={dark ? 'rgba(220,230,255,0.7)' : 'var(--text-muted)'} /> View interactive demo
+                <Link href="/sample-report" className="lp-btn-secondary" style={{ fontSize: 15, padding: '13px 26px', borderColor: 'rgba(255,255,255,0.3)', color: 'rgba(220,230,255,0.9)', transition: 'all 0.3s ease' }} {...btnHandlers}>
+                  <Icon name="zap" size={14} color="rgba(220,230,255,0.7)" /> View interactive demo
                 </Link>
               </div>
             </div>
@@ -513,8 +513,8 @@ const Hero = () => {
           <div style={{ marginTop: 64, display: 'flex', gap: 0, borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'var(--border)'}`, paddingTop: 28, transition: 'border-color 0.8s ease' }}>
             {[{ val: 'FMCSA', sub: 'Official data source' }, { val: 'CSA', sub: 'All 7 BASICs' }, { val: 'SAFER', sub: 'Authority & registration' }, { val: 'Real-time', sub: 'Inspection & violation data' }, { val: 'Plain English', sub: 'AI-generated answers' }].map((s, i) => (
               <div key={i} style={{ flex: 1, paddingRight: 24, borderRight: i < 4 ? `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'var(--border)'}` : 'none', paddingLeft: i > 0 ? 24 : 0, transition: 'border-color 0.8s ease' }}>
-                <div style={{ fontFamily: 'var(--lp-mono)', fontSize: 13, fontWeight: 600, color: t('var(--blue)', '#60b0ff'), marginBottom: 3, transition: 'color 0.8s ease' }}>{s.val}</div>
-                <div style={{ fontSize: 11.5, color: t('var(--text-dim)', 'rgba(180,200,230,0.7)'), transition: 'color 0.8s ease' }}>{s.sub}</div>
+                <div style={{ fontFamily: 'var(--lp-mono)', fontSize: 13, fontWeight: 600, color: t('rgba(255,255,255,0.95)', '#60b0ff'), marginBottom: 3, transition: 'color 0.8s ease' }}>{s.val}</div>
+                <div style={{ fontSize: 11.5, color: t('rgba(255,255,255,0.6)', 'rgba(180,200,230,0.7)'), transition: 'color 0.8s ease' }}>{s.sub}</div>
               </div>
             ))}
           </div>
