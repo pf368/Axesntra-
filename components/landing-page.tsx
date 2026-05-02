@@ -773,7 +773,7 @@ const FeatureGrid = () => {
 const PhotoCallout = () => (
   <section style={{ position: 'relative', height: 440, overflow: 'hidden' }}>
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=1600&q=80&auto=format&fit=crop" alt="Commercial truck fleet" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.32) saturate(0.7)' }} />
+    <img src="/images/callout-bg.png" alt="Axenstra truck fleet" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'brightness(0.5) saturate(0.85)' }} />
     <div style={{ position: 'absolute', inset: 0, background: 'var(--bg)', opacity: 0.5 }} />
     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center' }}>
       <div className="lp-container">
