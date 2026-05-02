@@ -1077,8 +1077,6 @@ const LandingFooter = () => (
 export function LandingPage() {
   return (
     <div className="landing-page">
-      {/* Grid overlay */}
-      <div style={{ position: 'fixed', inset: 0, backgroundImage: 'linear-gradient(rgba(10,18,38,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(10,18,38,0.04) 1px, transparent 1px)', backgroundSize: '60px 60px', pointerEvents: 'none', zIndex: 0 }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
         <Nav />
         <main>
