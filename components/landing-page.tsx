@@ -472,48 +472,56 @@ const Hero = () => {
   const t = (light: string, darkVal: string) => dark ? darkVal : light;
 
   return (
-    <section style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Background images — stacked, same crop, cross-fade on hover */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/images/hero-light.png" alt="" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: dark ? 0 : 1, transition: 'opacity 0.8s ease', zIndex: 0 }} />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/images/hero-dark.png" alt="" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: dark ? 1 : 0, transition: 'opacity 0.8s ease', zIndex: 0 }} />
+    /* Outer section — page background shows as white border around the image */
+    <section style={{ background: 'var(--bg)', padding: '24px 24px 0', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Gradient scrim — left side for text legibility */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: dark ? 'linear-gradient(to right, rgba(4,6,12,0.72) 0%, rgba(4,6,12,0.45) 55%, transparent 100%)' : 'linear-gradient(to right, rgba(245,248,252,0.78) 0%, rgba(245,248,252,0.5) 55%, transparent 100%)', transition: 'background 0.8s ease' }} />
+      {/* Rounded image container — clips the photos and shows white space around them */}
+      <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 24px)' }}>
 
-      <div className="lp-container" style={{ position: 'relative', zIndex: 2, paddingTop: 136, paddingBottom: 80, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center', minWidth: 0 }}>
-          <div style={{ textAlign: 'left' }}>
-            <h1 style={{ fontSize: 'clamp(40px, 4.6vw, 64px)', fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 1.04, marginBottom: 22, color: t('var(--text)', '#ffffff'), transition: 'color 0.8s ease' }}>
-              DOT violations happen.<br />
-              <span style={{ color: t('var(--blue)', '#60b0ff'), transition: 'color 0.8s ease' }}>Axesntra tells you exactly what to do next.</span>
-            </h1>
-            <p style={{ fontSize: 17, color: t('var(--text-muted)', 'rgba(200,215,240,0.85)'), marginBottom: 36, lineHeight: 1.65, maxWidth: 520, transition: 'color 0.8s ease' }}>
-              Axesntra reads FMCSA, CSA, SAFER, inspection, violation, crash, and BASIC data — then explains what matters in plain English so safety teams can act faster.
-            </p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <Link href="/early-access" className="lp-btn-primary" style={{ fontSize: 15, padding: '13px 28px' }} {...btnHandlers}>
-                Get Early Access <Icon name="arrow" size={14} color="white" />
-              </Link>
-              <Link href="/sample-report" className="lp-btn-secondary" style={{ fontSize: 15, padding: '13px 26px', borderColor: dark ? 'rgba(255,255,255,0.3)' : undefined, color: dark ? 'rgba(220,230,255,0.9)' : undefined, transition: 'all 0.3s ease' }} {...btnHandlers}>
-                <Icon name="zap" size={14} color={dark ? 'rgba(220,230,255,0.7)' : 'var(--text-muted)'} /> View interactive demo
-              </Link>
+        {/* Background images — stacked, same crop, cross-fade on hover */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/hero-light.png" alt="" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: dark ? 0 : 1, transition: 'opacity 0.8s ease', zIndex: 0 }} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/hero-dark.png" alt="" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: dark ? 1 : 0, transition: 'opacity 0.8s ease', zIndex: 0 }} />
+
+        {/* Gradient scrim for text legibility */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: dark ? 'linear-gradient(to right, rgba(4,6,12,0.72) 0%, rgba(4,6,12,0.45) 55%, transparent 100%)' : 'linear-gradient(to right, rgba(245,248,252,0.78) 0%, rgba(245,248,252,0.5) 55%, transparent 100%)', transition: 'background 0.8s ease' }} />
+
+        {/* Content */}
+        <div className="lp-container" style={{ position: 'relative', zIndex: 2, paddingTop: 112, paddingBottom: 72, flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center', minWidth: 0 }}>
+            <div style={{ textAlign: 'left' }}>
+              <h1 style={{ fontSize: 'clamp(40px, 4.6vw, 64px)', fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 1.04, marginBottom: 22, color: t('var(--text)', '#ffffff'), transition: 'color 0.8s ease' }}>
+                DOT violations happen.<br />
+                <span style={{ color: t('var(--blue)', '#60b0ff'), transition: 'color 0.8s ease' }}>Axesntra tells you exactly what to do next.</span>
+              </h1>
+              <p style={{ fontSize: 17, color: t('var(--text-muted)', 'rgba(200,215,240,0.85)'), marginBottom: 36, lineHeight: 1.65, maxWidth: 520, transition: 'color 0.8s ease' }}>
+                Axesntra reads FMCSA, CSA, SAFER, inspection, violation, crash, and BASIC data — then explains what matters in plain English so safety teams can act faster.
+              </p>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <Link href="/early-access" className="lp-btn-primary" style={{ fontSize: 15, padding: '13px 28px' }} {...btnHandlers}>
+                  Get Early Access <Icon name="arrow" size={14} color="white" />
+                </Link>
+                <Link href="/sample-report" className="lp-btn-secondary" style={{ fontSize: 15, padding: '13px 26px', borderColor: dark ? 'rgba(255,255,255,0.3)' : undefined, color: dark ? 'rgba(220,230,255,0.9)' : undefined, transition: 'all 0.3s ease' }} {...btnHandlers}>
+                  <Icon name="zap" size={14} color={dark ? 'rgba(220,230,255,0.7)' : 'var(--text-muted)'} /> View interactive demo
+                </Link>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 18, height: 560, minWidth: 0, position: 'relative' }}>
+              <div className="glow-card" style={{ minWidth: 0, minHeight: 0 }}><div><DashboardMock /></div></div>
+              <div className="glow-card" style={{ minWidth: 0, minHeight: 0 }}><div><AIChatLoopDemo /></div></div>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 18, height: 560, minWidth: 0, position: 'relative' }}>
-            <div className="glow-card" style={{ minWidth: 0, minHeight: 0 }}><div><DashboardMock /></div></div>
-            <div className="glow-card" style={{ minWidth: 0, minHeight: 0 }}><div><AIChatLoopDemo /></div></div>
+          <div style={{ marginTop: 64, display: 'flex', gap: 0, borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'var(--border)'}`, paddingTop: 28, transition: 'border-color 0.8s ease' }}>
+            {[{ val: 'FMCSA', sub: 'Official data source' }, { val: 'CSA', sub: 'All 7 BASICs' }, { val: 'SAFER', sub: 'Authority & registration' }, { val: 'Real-time', sub: 'Inspection & violation data' }, { val: 'Plain English', sub: 'AI-generated answers' }].map((s, i) => (
+              <div key={i} style={{ flex: 1, paddingRight: 24, borderRight: i < 4 ? `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'var(--border)'}` : 'none', paddingLeft: i > 0 ? 24 : 0, transition: 'border-color 0.8s ease' }}>
+                <div style={{ fontFamily: 'var(--lp-mono)', fontSize: 13, fontWeight: 600, color: t('var(--blue)', '#60b0ff'), marginBottom: 3, transition: 'color 0.8s ease' }}>{s.val}</div>
+                <div style={{ fontSize: 11.5, color: t('var(--text-dim)', 'rgba(180,200,230,0.7)'), transition: 'color 0.8s ease' }}>{s.sub}</div>
+              </div>
+            ))}
           </div>
         </div>
-        <div style={{ marginTop: 64, display: 'flex', gap: 0, borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'var(--border)'}`, paddingTop: 28, transition: 'border-color 0.8s ease' }}>
-          {[{ val: 'FMCSA', sub: 'Official data source' }, { val: 'CSA', sub: 'All 7 BASICs' }, { val: 'SAFER', sub: 'Authority & registration' }, { val: 'Real-time', sub: 'Inspection & violation data' }, { val: 'Plain English', sub: 'AI-generated answers' }].map((s, i) => (
-            <div key={i} style={{ flex: 1, paddingRight: 24, borderRight: i < 4 ? `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'var(--border)'}` : 'none', paddingLeft: i > 0 ? 24 : 0, transition: 'border-color 0.8s ease' }}>
-              <div style={{ fontFamily: 'var(--lp-mono)', fontSize: 13, fontWeight: 600, color: t('var(--blue)', '#60b0ff'), marginBottom: 3, transition: 'color 0.8s ease' }}>{s.val}</div>
-              <div style={{ fontSize: 11.5, color: t('var(--text-dim)', 'rgba(180,200,230,0.7)'), transition: 'color 0.8s ease' }}>{s.sub}</div>
-            </div>
-          ))}
-        </div>
+
       </div>
     </section>
   );
