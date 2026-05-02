@@ -484,8 +484,6 @@ const Hero = () => {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/images/hero-dark.png" alt="" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', opacity: dark ? 1 : 0, transition: 'opacity 0.8s ease', zIndex: 0 }} />
 
-        {/* Gradient scrim for text legibility */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: dark ? 'linear-gradient(to right, rgba(4,6,12,0.72) 0%, rgba(4,6,12,0.45) 55%, transparent 100%)' : 'linear-gradient(to right, rgba(245,248,252,0.78) 0%, rgba(245,248,252,0.5) 55%, transparent 100%)', transition: 'background 0.8s ease' }} />
 
         {/* Content */}
         <div className="lp-container" style={{ position: 'relative', zIndex: 2, paddingTop: 112, paddingBottom: 72, flex: 1, display: 'flex', flexDirection: 'column' }}>
