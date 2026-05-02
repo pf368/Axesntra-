@@ -473,7 +473,7 @@ const Hero = () => {
 
   return (
     /* Outer section — page background shows as white border around the image */
-    <section style={{ background: 'var(--bg)', padding: '24px 24px 0', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <section style={{ background: 'var(--bg)', padding: '84px 24px 0', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
       {/* Rounded image container — clips the photos and shows white space around them */}
       <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 24px)' }}>
