@@ -700,15 +700,10 @@ const UseCasesSection = () => {
           {cards.map((card, i) => (
             <div key={i} onClick={() => setActive(i)} style={{ background: active === i ? 'var(--bg)' : 'var(--bg2)', border: `1px solid ${active === i ? card.color + '55' : 'var(--border)'}`, borderRadius: 14, cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden', boxShadow: active === i ? `0 0 24px ${card.color}18` : 'none' }}>
               {active === i && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: card.color, opacity: 0.7, zIndex: 1 }} />}
-              <div style={{ position: 'relative', height: 140, overflow: 'hidden', background: 'var(--bg2)', filter: active === i ? 'none' : 'brightness(0.92) saturate(0.85)', transition: 'filter 0.3s' }}>
-                <PersonaIllustration kind={card.illustration} color={card.color} />
-                <div style={{ position: 'absolute', top: 10, left: 10 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 7, background: `${card.color}30`, border: `1px solid ${card.color}50`, backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name={card.icon} size={13} color={card.color} />
-                  </div>
+              <div style={{ padding: '20px 18px 20px' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: `${card.color}20`, border: `1px solid ${card.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                  <Icon name={card.icon} size={15} color={card.color} />
                 </div>
-              </div>
-              <div style={{ padding: '14px 18px 20px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 7, letterSpacing: '-0.01em' }}>For {card.audience}</div>
                 <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 14 }}>{card.desc}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
