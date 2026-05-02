@@ -480,9 +480,9 @@ const Hero = () => (
             <Link href="/early-access" className="lp-btn-primary" style={{ fontSize: 15, padding: '13px 28px' }}>
               Get Early Access <Icon name="arrow" size={14} color="white" />
             </Link>
-            <a href="#platform-tour" className="lp-btn-secondary" style={{ fontSize: 15, padding: '13px 26px' }}>
+            <Link href="/sample-report" className="lp-btn-secondary" style={{ fontSize: 15, padding: '13px 26px' }}>
               <Icon name="zap" size={14} color="var(--text-muted)" /> View interactive demo
-            </a>
+            </Link>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 18, height: 560, minWidth: 0, position: 'relative' }}>
