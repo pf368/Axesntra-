@@ -465,9 +465,14 @@ const Nav = () => {
 // ─── HERO ─────────────────────────────────────────────────────────────────────
 const Hero = () => {
   const [dark, setDark] = useState(false);
+  const [demoHover, setDemoHover] = useState(false);
   const btnHandlers = {
     onMouseEnter: () => setDark(true),
     onMouseLeave: () => setDark(false),
+  };
+  const demoBtnHandlers = {
+    onMouseEnter: () => { setDark(true); setDemoHover(true); },
+    onMouseLeave: () => { setDark(false); setDemoHover(false); },
   };
   const t = (light: string, darkVal: string) => dark ? darkVal : light;
 
@@ -500,14 +505,25 @@ const Hero = () => {
                 <Link href="/early-access" className="lp-btn-primary" style={{ fontSize: 15, padding: '13px 28px' }} {...btnHandlers}>
                   Get Early Access <Icon name="arrow" size={14} color="white" />
                 </Link>
-                <Link href="/sample-report" className="lp-btn-secondary" style={{ fontSize: 15, padding: '13px 26px', borderColor: 'rgba(255,255,255,0.3)', color: 'rgba(220,230,255,0.9)', transition: 'all 0.3s ease' }} {...btnHandlers}>
-                  <Icon name="zap" size={14} color="rgba(220,230,255,0.7)" /> View interactive demo
+                <Link href="/sample-report" className="lp-btn-secondary" style={{ fontSize: 15, padding: '13px 26px', borderColor: 'rgba(255,255,255,0.3)', color: demoHover ? '#0a1226' : 'rgba(220,230,255,0.9)', transition: 'all 0.3s ease' }} {...demoBtnHandlers}>
+                  <Icon name="zap" size={14} color={demoHover ? '#0a1226' : 'rgba(220,230,255,0.7)'} /> View interactive demo
                 </Link>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 18, height: 560, minWidth: 0, position: 'relative' }}>
-              <div className="glow-card" style={{ minWidth: 0, minHeight: 0 }}><div><DashboardMock /></div></div>
-              <div className="glow-card" style={{ minWidth: 0, minHeight: 0 }}><div><AIChatLoopDemo /></div></div>
+            <div style={dark ? {
+              '--bg1': '#080d18',
+              '--bg2': '#0f1726',
+              '--bg3': '#182035',
+              '--border': 'rgba(255,255,255,0.08)',
+              '--border-bright': 'rgba(0,116,255,0.4)',
+              '--text': '#e8f0ff',
+              '--text-muted': '#8899c8',
+              '--text-dim': '#4a5878',
+            } as React.CSSProperties : {}}>
+              <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 18, height: 560, minWidth: 0, position: 'relative' }}>
+                <div className="glow-card" style={{ minWidth: 0, minHeight: 0 }}><div><DashboardMock /></div></div>
+                <div className="glow-card" style={{ minWidth: 0, minHeight: 0 }}><div><AIChatLoopDemo /></div></div>
+              </div>
             </div>
           </div>
           <div style={{ marginTop: 64, display: 'flex', gap: 0, borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'var(--border)'}`, paddingTop: 28, transition: 'border-color 0.8s ease' }}>
